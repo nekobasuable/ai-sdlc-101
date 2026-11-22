@@ -9,7 +9,7 @@ https://claude.com/ja/resources/articles/the-ai-native-sdlc-playbook
 |---|---|---|
 | 1 Plan | intent/*.md | 完了 |
 | 2 Design | spec/*.md | 完了 |
-| 3 Build | CLAUDE.md, .claude/skills, hooks, plan.md | 未着手 |
+| 3 Build | CLAUDE.md, .claude/skills, hooks, plan/*.md | 進行中 |
 | 4 Test | make test, evals | 未着手 |
 | 5 Deploy | REVIEW.md, 承認ゲートのフック, CI | 未着手 |
 | 6 Maintain | bands.yaml, スキャン | 未着手 |
