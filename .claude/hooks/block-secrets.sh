@@ -3,7 +3,7 @@
 # 「API キー」などの単語ではなく、実際の鍵の形だけに反応させる。exit 2 で止め、標準エラーの内容が Claude に返る。
 set -euo pipefail
 
-PATTERN='sk-ant-[A-Za-z0-9_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
+PATTERN='sb_secret_[A-Za-z0-9_-]{20,}|sk-ant-[A-Za-z0-9_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
 
 input=$(cat)
 tool=$(jq -r '.tool_name // ""' <<<"$input")

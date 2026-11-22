@@ -1,7 +1,7 @@
 # plan/001-foundation: 土台づくり(雛形、最小のテスト、秘密情報のフック、Supabase の試作)
 
 - 元: [spec/life-dashboard.md](../spec/life-dashboard.md)(受理済み)
-- 状態: 承認済み(承認者: リポジトリオーナー、2026-11-22)
+- 状態: 実装済み(承認者: リポジトリオーナー、2026-11-22)
 - 承認後、この内容を `plan/001-foundation.md` としてコミットしてから実装に入る。
 
 ## Context
@@ -57,4 +57,17 @@ spec が受理され、Stage 3 に入った。機能を作り始める前に、�
 - `npx supabase start` が成功し、`npx supabase status` に API の URL が出る。その後 `npx supabase stop` で止まる。
 
 ## 試作の結果
-(実装後に追記)
+実装日: 2026-11-22
+
+### 証明の結果
+- `npm run lint`: 警告ゼロ。`npm test`: 5件すべて合格。`npm run build`: 成功。
+- フック: 鍵入りの Write → exit 2、普通のコード → 0、「API キー」の単語だけ → 0、`.env.local` への鍵 → 0、鍵をステージした `git commit` → exit 2、鍵なしの `git commit` → 0。
+- Supabase(C8): 最小構成で起動に成功。所要時間は初回157秒(イメージの取得を含む)、イメージは約3.9GB、ディスクの空きは60GB → 56GB。REST API が 200 を返すことを確認し、停止した。
+  - 結論: この作業環境で開発用の Supabase は動く。データベースを含むテストは、この環境で回せる。
+  - 未確認: Supabase クラウドの無料プランの条件(使わないと停止するなど)。本番の設定を作る plan で確かめる。
+
+### 計画からのずれ
+- lint は ESLint ではなく oxlint になった。Vite の雛形の現行版が oxlint を採用していたため、それに合わせた。`lint` は `oxlint && tsc -b --noEmit`。
+- `supabase start` で外すサービスを増やした(realtime、storage-api、mailpit、postgres-meta も今は不要なため)。
+- フックの検査対象に `sb_secret_` で始まる文字列を追加した。Supabase の現行版が、JWT ではなくこの形の秘密鍵を出力することが試作でわかったため。
+- 最小の画面で `new Date()` を描画中に呼ぶと lint の警告が出たため、時刻を状態に持ち、1分ごとに更新する形にした(「今」の表示が時間とともに変わるので、仕様上も正しい)。

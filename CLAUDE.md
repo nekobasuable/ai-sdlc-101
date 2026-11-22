@@ -9,13 +9,13 @@
 - 判断に迷ったら spec の設計原則 P1〜P7 に照らす。特に、余白(P2)と今ここ(P7)を損なう提案をしない。
 
 ## Commands
-※ プロジェクトの雛形を作るまでは未整備。雛形の作成時にここを実際のコマンドに合わせて更新する。
 - `npm run dev`: 開発サーバー
-- `npm run build`: ビルド
-- `npm run lint`: lint と型チェック
-- `npm test`: 単体テスト(Vitest)
-- `npm run e2e`: 画面のテスト(Playwright)
-- `npx supabase start`: 開発用の Supabase を起動。Docker が必要。作業環境では Docker デーモンが止まっていることがあるので、先に `dockerd` を起動する。
+- `npm run build`: ビルド(`tsc -b && vite build`)
+- `npm run lint`: lint(oxlint)と型チェック。警告ゼロにする
+- `npm test`: 単体テスト(Vitest)。`src/domain` が対象
+- `npx supabase start -x studio,imgproxy,vector,logflare,edge-runtime,supavisor,realtime,storage-api,mailpit,postgres-meta`: 開発用の Supabase を最小構成で起動(初回は約2.5分、イメージ約4GB)。止めるときは `npx supabase stop`
+  - 作業環境では Docker デーモンが止まっていることがある。`docker info` が失敗したら、先に `dockerd` をバックグラウンドで起動する。
+- `.claude/hooks/block-secrets.sh`: 秘密の情報を止めるフック。鍵の形の文字列を含む書き込みと `git commit` を止める。止められたら鍵を `.env.local` に移す。
 
 ## 構成
 - `src/domain/`: 純粋な計算(今のブロックの判定、余白の割合、振り返りの集計など)。React と Supabase に依存しない。単体テスト必須。
