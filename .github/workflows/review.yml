@@ -21,6 +21,12 @@ jobs:
   review:
     # このリポジトリのブランチからの PR だけ(他人のフォークからの PR では動かさない)
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    # レビューは読んでコメントするだけなので、コードを書き換える権限は持たせない(PR レビューの指摘)
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

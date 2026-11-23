@@ -35,6 +35,7 @@ export default function SyncSettings({ onSynced }: { onSynced: () => void }) {
     const res = await syncNow()
     setBusy(false)
     if (!res.ok) return setMessage(res.message)
+    if (res.data.busy) return setMessage('ほかの画面で同期しているところでした。少し時間をおくと、また同期できます。')
     setMessage(res.data.failed > 0 ? `同期しました。うまく反映できなかったものが ${res.data.failed} 件あります。` : `同期しました(${res.data.applied} 件の変更)。`)
     onSynced()
   }

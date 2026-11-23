@@ -5,7 +5,7 @@ import { supabase } from './supabase'
 
 export type GoogleList = { id: string; title: string }
 export type ListLink = { listId: string; area: Area | null; isDefault: boolean }
-export type SyncSummary = { applied: number; failed: number }
+export type SyncSummary = { applied: number; failed: number; busy?: boolean }
 
 /** Google とのつながりが切れていて、ログインし直す必要がある */
 export const RECONNECT = 'Google とのつながりが切れています。ログアウトして、もう一度ログインすると戻ります。'

@@ -108,7 +108,39 @@ const toGoogle = (item: LocalItem) => ({
 // synced_at に何か値を書くと、トリガーが updated_at と同じ時刻にそろえる(マイグレーション 20261124010000)
 const SYNC_STAMP = new Date(0).toISOString()
 
+const LEASE_MS = 2 * 60 * 1000
+
+/**
+ * 同期を同時に1つだけにする(PR レビューの指摘、spec C13)。
+ * 「空か、2分より古い」ときだけ書き込める更新は、データベースの中で1つの操作として行われるので、
+ * 同時に呼ばれても成功するのは1つだけになる。
+ */
+async function claimSyncLease(admin: SupabaseClient, userId: string): Promise<boolean> {
+  const staleBefore = new Date(Date.now() - LEASE_MS).toISOString()
+  const { data, error } = await admin
+    .from('google_credentials')
+    .update({ sync_started_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .or(`sync_started_at.is.null,sync_started_at.lt.${staleBefore}`)
+    .select('user_id')
+  if (error) throw new Error(error.message)
+  return (data ?? []).length === 1
+}
+
+async function releaseSyncLease(admin: SupabaseClient, userId: string) {
+  await admin.from('google_credentials').update({ sync_started_at: null }).eq('user_id', userId)
+}
+
 async function runSync(admin: SupabaseClient, userId: string, accessToken: string) {
+  if (!(await claimSyncLease(admin, userId))) return { applied: 0, failed: 0, busy: true }
+  try {
+    return await runSyncLocked(admin, userId, accessToken)
+  } finally {
+    await releaseSyncLease(admin, userId)
+  }
+}
+
+async function runSyncLocked(admin: SupabaseClient, userId: string, accessToken: string) {
   const { data: linkRows } = await admin.from('task_list_links').select('google_list_id, area, is_default').eq('user_id', userId)
   const links: ListLink[] = (linkRows ?? []).map((l) => ({ listId: l.google_list_id, area: l.area, isDefault: l.is_default }))
   if (links.length === 0) return { applied: 0, failed: 0 }
@@ -184,15 +216,16 @@ async function apply(admin: SupabaseClient, userId: string, accessToken: string,
     case 'deleteLocal':
       return check(await items.update({ deleted_at: new Date().toISOString(), synced_at: SYNC_STAMP }).eq('id', op.item.id))
     case 'createRemote': {
-      const created = await google(accessToken, `/lists/${encodeURIComponent(op.listId)}/tasks`, {
-        method: 'POST',
-        body: JSON.stringify(toGoogle(op.item)),
-      })
-      return check(
-        await items
-          .update({ google_task_id: created.id, google_list_id: op.listId, google_updated_at: created.updated, synced_at: SYNC_STAMP })
-          .eq('id', op.item.id),
-      )
+      const taskPath = `/lists/${encodeURIComponent(op.listId)}/tasks`
+      const created = await google(accessToken, taskPath, { method: 'POST', body: JSON.stringify(toGoogle(op.item)) })
+      const recorded = await items
+        .update({ google_task_id: created.id, google_list_id: op.listId, google_updated_at: created.updated, synced_at: SYNC_STAMP })
+        .eq('id', op.item.id)
+      if (recorded.error) {
+        // 記録に失敗したら、作った Google 側のタスクを消して戻す(次の同期で二重に作らないため。PR レビューの指摘)
+        await google(accessToken, `${taskPath}/${encodeURIComponent(created.id)}`, { method: 'DELETE' }).catch(() => {})
+      }
+      return check(recorded)
     }
     case 'updateRemote': {
       const updated = await google(accessToken, `/lists/${encodeURIComponent(op.listId)}/tasks/${encodeURIComponent(op.taskId)}`, {
