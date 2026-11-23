@@ -63,7 +63,7 @@ export default function NowView({
                     type="button"
                     aria-expanded={editing === entry.item.id}
                     onClick={() => setEditing(editing === entry.item.id ? null : entry.item.id)}
-                    className="text-left"
+                    className="min-h-11 text-left"
                   >
                     {entry.item.body}
                   </button>

@@ -1,7 +1,7 @@
 -- plan/003 の証明: 本人の行だけを読み書きできる(spec N6)
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(21);
+select plan(24);
 
 -- public スキーマに、RLS が無効なテーブルが1つもない
 select is_empty(
@@ -82,6 +82,19 @@ select ok((select synced_at = updated_at from public.items where id = '11111111-
 -- 同じトランザクションの中では now() が変わらないため、利用者の変更は「updated_at が synced_at と同じか後」で確かめる
 update public.items set body = '利用者の変更' where id = '11111111-1111-1111-1111-111111111111';
 select ok((select synced_at is not null and updated_at >= synced_at from public.items where id = '11111111-1111-1111-1111-111111111111'), '利用者の変更では synced_at は変わらない');
+
+-- items の updated_at は、Google ToDo に関係する変更のときだけ進む(PR #6 のレビューの指摘)
+-- テストは1つのトランザクションの中で動き、now() が変わらない。比べる基準を古い時刻に置くため、いったんトリガーを止めて書く
+alter table public.items disable trigger set_updated_at;
+update public.items set updated_at = '2000-01-01' where id = '11111111-1111-1111-1111-111111111111';
+alter table public.items enable trigger set_updated_at;
+create temp table before_ts as select updated_at as ts from public.items where id = '11111111-1111-1111-1111-111111111111';
+update public.items set area = 'school', quadrant = 2 where id = '11111111-1111-1111-1111-111111111111';
+select ok((select updated_at = (select ts from before_ts) from public.items where id = '11111111-1111-1111-1111-111111111111'), '仕分け(領域、象限)では updated_at が進まない');
+update public.items set status = 'candidate' where id = '11111111-1111-1111-1111-111111111111';
+select ok((select updated_at = (select ts from before_ts) from public.items where id = '11111111-1111-1111-1111-111111111111'), '完了以外の状態の変化(今やるに置く)では updated_at が進まない');
+update public.items set body = '統計のレポート(改)' where id = '11111111-1111-1111-1111-111111111111';
+select ok((select updated_at > (select ts from before_ts) from public.items where id = '11111111-1111-1111-1111-111111111111'), '題名の変更では updated_at が進む');
 
 select * from finish();
 rollback;
