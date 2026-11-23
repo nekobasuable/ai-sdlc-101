@@ -1,9 +1,14 @@
-name: Deploy to GitHub Pages
+name: Deploy
 
 on:
   push:
     branches: [claude/ai-native-sdlc-playbook-3yqzzp, main]
   workflow_dispatch:
+    inputs:
+      repair_initial_migrations:
+        description: '手で適用済みの最初の2つのマイグレーションを「適用済み」として記録する(初回だけ)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -11,8 +16,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: deploy
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -34,8 +39,44 @@ jobs:
         with:
           path: dist
 
-  deploy:
+  # マイグレーションとサーバー側の関数を Supabase クラウドに適用する(plan/005 段階 A)
+  supabase:
     needs: build
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Link project
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
+            echo "::error::GitHub の Secrets に SUPABASE_ACCESS_TOKEN と SUPABASE_DB_PASSWORD を登録してください"
+            exit 1
+          fi
+          # プロジェクト ID は、公開用の URL(https://<ID>.supabase.co)から取り出す
+          ref=$(echo "$SUPABASE_URL" | sed -E 's#https://([^.]+)\.supabase\.co.*#\1#')
+          supabase link --project-ref "$ref"
+      - name: Mark manually applied migrations
+        if: ${{ inputs.repair_initial_migrations }}
+        run: supabase migration repair --status applied 20261123000000 20261123010000
+      - name: Apply migrations
+        run: supabase db push
+      - name: Deploy functions
+        run: |
+          if ls supabase/functions/*/index.ts >/dev/null 2>&1; then
+            supabase functions deploy
+          else
+            echo "サーバー側の関数はまだありません"
+          fi
+
+  # 画面は、データベースの更新が終わってから配信する
+  deploy:
+    needs: [build, supabase]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
