@@ -1,10 +1,12 @@
+import type { Area } from '../domain/areas'
+import type { Quadrant } from '../domain/quadrant'
 import type { Slot } from '../domain/slot'
 import type { Database } from './database.types'
 import { failure, toResult, type DataResult } from './result'
 import { supabase } from './supabase'
 
 type Tables = Database['public']['Tables']
-export type Item = Pick<Tables['items']['Row'], 'id' | 'body' | 'status' | 'area' | 'quadrant'> & { dueDate: string | null }
+export type Item = Pick<Tables['items']['Row'], 'id' | 'body' | 'status'> & { area: Area | null; quadrant: Quadrant | null; dueDate: string | null }
 export type PlacementResult = NonNullable<Tables['placements']['Row']['result']>
 export type NowEntry = { placementId: string; result: PlacementResult | null; item: Item }
 
@@ -30,7 +32,8 @@ export async function listInbox(): Promise<DataResult<Item[]>> {
 }
 
 type ItemRow = { id: string; body: string; status: string; area: string | null; quadrant: number | null; due_date: string | null }
-const toItem = (r: ItemRow): Item => ({ id: r.id, body: r.body, status: r.status, area: r.area, quadrant: r.quadrant, dueDate: r.due_date })
+// 領域と象限はデータベースの制約で値が限られているので、決まった値の型として受け取る
+const toItem = (r: ItemRow): Item => ({ id: r.id, body: r.body, status: r.status, area: r.area as Area | null, quadrant: r.quadrant as Quadrant | null, dueDate: r.due_date })
 
 /** 締め切りのある未完了の項目(spec R38、R39)。to まで(含む)、from があればそこから(含む) */
 export async function listDue(range: { from?: string; to: string }): Promise<DataResult<Item[]>> {
@@ -147,8 +150,29 @@ export async function listCandidates(): Promise<DataResult<Item[]>> {
 }
 
 /** 仕分け: 項目の領域と象限を書き換える(R4)。Google ToDo には送らない */
-export async function classifyItem(itemId: string, meta: { area: string | null; quadrant: number | null }): Promise<DataResult<null>> {
+export async function classifyItem(itemId: string, meta: { area: Area | null; quadrant: Quadrant | null }): Promise<DataResult<null>> {
   if (!supabase) return NOT_CONFIGURED
   const { error } = await supabase.from('items').update(meta).eq('id', itemId)
+  return toResult(null, error)
+}
+
+/** その期間に完了になった項目(省みるの「ほかに終えたこと」に使う。配置の有無は呼ぶ側で見る) */
+export async function listCompletedBetween(start: Date, end: Date): Promise<DataResult<Item[]>> {
+  if (!supabase) return NOT_CONFIGURED
+  const { data, error } = await supabase
+    .from('items')
+    .select('id, body, status, area, quadrant, due_date')
+    .eq('status', 'done')
+    .is('deleted_at', null)
+    .gte('updated_at', start.toISOString())
+    .lt('updated_at', end.toISOString())
+  if (error) return failure(error)
+  return { ok: true, data: data.map(toItem) }
+}
+
+/** 手放したことを選び直す(R17): やることに戻す、または「いつか/やらない」に */
+export async function reconsider(itemId: string, to: 'inbox' | 'someday'): Promise<DataResult<null>> {
+  if (!supabase) return NOT_CONFIGURED
+  const { error } = await supabase.from('items').update({ status: to }).eq('id', itemId)
   return toResult(null, error)
 }

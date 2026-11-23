@@ -13,9 +13,12 @@ import { zonedParts } from '../domain/time'
 import { weekRange } from '../domain/week'
 import Capture from './Capture'
 import InboxList from './InboxList'
+import type { Classify } from './ItemMeta'
 import NowView from './NowView'
 import Owl from './Owl'
+import DailyNote from './DailyNote'
 import QuoteLine from './QuoteLine'
+import ReviewView from './ReviewView'
 import TodayDue from './TodayDue'
 import SignIn from './SignIn'
 import { useAutoSync } from './useAutoSync'
@@ -48,7 +51,7 @@ function Home() {
   const [inbox, setInbox] = useState<Item[]>([])
   const [due, setDue] = useState<Item[]>([])
   const [message, setMessage] = useState<string | null>(null)
-  const [tab, setTab] = useState<'now' | 'week'>('now')
+  const [tab, setTab] = useState<'now' | 'week' | 'review'>('now')
   // 項目の変更や、ブロックの切り替わり(slotKey の変化)のたびに読み直す
   const [version, setVersion] = useState(0)
 
@@ -95,7 +98,7 @@ function Home() {
     }
   }, [settings, slotKey, version, date])
 
-  const classify = (item: Item, meta: { area: string | null; quadrant: number | null }) => run(classifyItem(item.id, meta))
+  const classify: Classify = (item, meta) => run(classifyItem(item.id, meta))
 
   async function run(action: Promise<{ ok: boolean; message?: string }>) {
     const res = await action
@@ -138,10 +141,18 @@ function Home() {
           <button type="button" onClick={() => setTab('week')} className={`min-h-11 ${tab === 'week' ? 'text-ink' : 'text-ink-3'}`}>
             週
           </button>
+          <button type="button" onClick={() => setTab('review')} className={`min-h-11 ${tab === 'review' ? 'text-ink' : 'text-ink-3'}`}>
+            省みる
+          </button>
         </nav>
       </header>
 
-      {tab === 'week' ? (
+      {tab === 'review' ? (
+        <div className="mx-auto mt-10 max-w-2xl">
+          <ReviewView settings={settings} now={now} />
+          {captureBar('lg:static lg:mt-12 lg:px-0 lg:pb-0')}
+        </div>
+      ) : tab === 'week' ? (
         <div className="mx-auto mt-10 max-w-2xl">
           <WeekView settings={settings} now={now} version={version} onChanged={reload} />
           {captureBar('lg:static lg:mt-12 lg:px-0 lg:pb-0')}
@@ -181,6 +192,8 @@ function Home() {
               </div>
               {owl.spot === 'aside' && <Owl pose={owl.pose} className="absolute -top-14 right-0" />}
             </section>
+
+            <DailyNote date={date} />
 
             <InboxList items={inbox} canPlace={slot !== null} onPlace={(item) => slot && run(placeNow(item.id, slot))} onClassify={classify} />
 
