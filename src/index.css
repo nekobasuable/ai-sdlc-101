@@ -1,1 +1,23 @@
 @import "tailwindcss";
+
+/* 色と書体は .claude/skills/life-dashboard-look/SKILL.md に従う(spec R35) */
+@theme {
+  --color-paper: #f3efe7;
+  --color-ink: #2e2a25;
+  --color-ink-2: #5a5248;
+  --color-ink-3: #6f665a;
+  --color-ink-4: #8c8276;
+  --color-rule: #d6cdbe;
+  --color-rule-soft: #e2dacc;
+  --font-mincho: "Zen Old Mincho", serif;
+  --font-hand: "Klee One", serif;
+  --font-sans: "Zen Kaku Gothic New", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-weight: 300;
+}

@@ -41,8 +41,8 @@ export default function SyncSettings({ onSynced }: { onSynced: () => void }) {
   }
 
   return (
-    <section className="text-sm">
-      <button className="text-stone-500" onClick={toggle}>
+    <section className="text-sm text-ink-2">
+      <button type="button" className="min-h-11 text-xs tracking-[0.18em] text-ink-3" onClick={toggle}>
         Google ToDo との同期{open ? ' ▲' : ' ▼'}
       </button>
       {open && (
@@ -50,7 +50,7 @@ export default function SyncSettings({ onSynced }: { onSynced: () => void }) {
           {lists.map((list) => {
             const link = links.find((l) => l.listId === list.id)
             return (
-              <div key={list.id} className="space-y-1 rounded border border-stone-200 bg-white p-3">
+              <div key={list.id} className="space-y-1 border-b border-rule-soft py-3">
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -61,11 +61,11 @@ export default function SyncSettings({ onSynced }: { onSynced: () => void }) {
                   {list.title}
                 </label>
                 {link && (
-                  <div className="flex flex-wrap items-center gap-3 pl-6 text-stone-600">
+                  <div className="flex flex-wrap items-center gap-3 pl-6 text-ink-3">
                     <select
                       value={link.area ?? ''}
                       onChange={(e) => update(list.id, { ...link, area: (e.target.value || null) as Area | null })}
-                      className="rounded border border-stone-300 bg-white px-2 py-1"
+                      className="min-h-11 border-b border-rule bg-transparent px-1"
                     >
                       <option value="">領域なし</option>
                       {AREAS.map((a) => (
@@ -87,15 +87,15 @@ export default function SyncSettings({ onSynced }: { onSynced: () => void }) {
               </div>
             )
           })}
-          <p className="text-stone-400">
+          <p className="text-ink-3">
             アプリで放り込んだ項目は、既定のリストに入ります(領域に結びついたリストがあれば、そちらに入ります)。
           </p>
-          <button disabled={busy} className="rounded border border-stone-300 px-3 py-1 disabled:opacity-50" onClick={sync}>
+          <button type="button" disabled={busy} className="min-h-11 font-hand text-[15px] text-ink underline decoration-rule underline-offset-[6px] disabled:opacity-40" onClick={sync}>
             今すぐ同期
           </button>
         </div>
       )}
-      {message && <p className="mt-2 text-stone-500">{message}</p>}
+      {message && <p className="mt-2 text-ink-3">{message}</p>}
     </section>
   )
 }
