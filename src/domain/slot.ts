@@ -16,3 +16,16 @@ export function currentSlot(now: Date, timeZone: string, blocks: readonly Block[
   const monday = new Date(Date.UTC(p.year, p.month - 1, p.day - day))
   return { weekStart: monday.toISOString().slice(0, 10), day, blockId: block.id }
 }
+
+/** 今週の開始日(月曜、YYYY-MM-DD)。ブロックの外の時間帯でも求められる */
+export function weekStartOf(now: Date, timeZone: string): string {
+  const p = zonedParts(now, timeZone)
+  const day = (p.weekday + 6) % 7
+  return new Date(Date.UTC(p.year, p.month - 1, p.day - day)).toISOString().slice(0, 10)
+}
+
+/** YYYY-MM-DD に日数を足す */
+export function addDays(date: string, days: number): string {
+  const [y, m, d] = date.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10)
+}

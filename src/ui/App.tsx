@@ -10,6 +10,7 @@ import NowView from './NowView'
 import SignIn from './SignIn'
 import SpikePanel from './SpikePanel'
 import SyncSettings from './SyncSettings'
+import WeekView from './WeekView'
 import { syncNow } from '../data/sync'
 
 export default function App() {
@@ -33,6 +34,7 @@ function Home() {
   const [entries, setEntries] = useState<NowEntry[]>([])
   const [inbox, setInbox] = useState<Item[]>([])
   const [message, setMessage] = useState<string | null>(null)
+  const [tab, setTab] = useState<'now' | 'week'>('now')
   // 項目の変更や、ブロックの切り替わり(slotKey の変化)のたびに読み直す
   const [version, setVersion] = useState(0)
 
@@ -78,7 +80,19 @@ function Home() {
   if (!settings) return <p className="p-4 text-stone-500">{message ?? '読み込んでいます…'}</p>
 
   return (
-    <main className="mx-auto max-w-md space-y-10 px-4 pt-10 pb-32 text-stone-800">
+    <main className="mx-auto max-w-md space-y-10 px-4 pt-6 pb-32 text-stone-800">
+      <nav className="flex gap-4 text-sm text-stone-400">
+        <button className={tab === 'now' ? 'text-stone-800' : ''} onClick={() => setTab('now')}>
+          今
+        </button>
+        <button className={tab === 'week' ? 'text-stone-800' : ''} onClick={() => setTab('week')}>
+          週
+        </button>
+      </nav>
+      {tab === 'week' ? (
+        <WeekView settings={settings} now={now} onChanged={reload} />
+      ) : (
+        <>
       <NowView
         block={block}
         entries={entries}
@@ -87,6 +101,8 @@ function Home() {
       />
       {message && <p className="text-sm text-stone-500">{message}</p>}
       <InboxList items={inbox} canPlace={slot !== null} onPlace={(item) => slot && run(placeNow(item.id, slot))} />
+        </>
+      )}
       <SyncSettings onSynced={reload} />
       <SpikePanel timeZone={settings.timeZone} />
       <button className="text-sm text-stone-400" onClick={signOut}>
