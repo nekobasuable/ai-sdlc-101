@@ -108,11 +108,12 @@ const toGoogle = (item: LocalItem) => ({
 // synced_at に何か値を書くと、トリガーが updated_at と同じ時刻にそろえる(マイグレーション 20261124010000)
 const SYNC_STAMP = new Date(0).toISOString()
 
-const LEASE_MS = 2 * 60 * 1000
+// 関数の最長の実行時間(数分)より十分長くする。短いと、動いている同期を「止まったもの」とみなして重ねてしまう(PR レビューの指摘)
+const LEASE_MS = 10 * 60 * 1000
 
 /**
  * 同期を同時に1つだけにする(PR レビューの指摘、spec C13)。
- * 「空か、2分より古い」ときだけ書き込める更新は、データベースの中で1つの操作として行われるので、
+ * 「空か、期限より古い」ときだけ書き込める更新は、データベースの中で1つの操作として行われるので、
  * 同時に呼ばれても成功するのは1つだけになる。
  */
 async function claimSyncLease(admin: SupabaseClient, userId: string): Promise<boolean> {
@@ -211,10 +212,17 @@ async function apply(admin: SupabaseClient, userId: string, accessToken: string,
             google_updated_at: op.task.updated,
             synced_at: SYNC_STAMP,
           })
-          .eq('id', op.item.id),
+          .eq('id', op.item.id)
+          // 読んだあとに利用者が変えていたら書かない。その変更は次の同期で扱う(PR レビューの指摘)
+          .eq('updated_at', op.item.updatedAt),
       )
     case 'deleteLocal':
-      return check(await items.update({ deleted_at: new Date().toISOString(), synced_at: SYNC_STAMP }).eq('id', op.item.id))
+      return check(
+        await items
+          .update({ deleted_at: new Date().toISOString(), synced_at: SYNC_STAMP })
+          .eq('id', op.item.id)
+          .eq('updated_at', op.item.updatedAt),
+      )
     case 'createRemote': {
       const taskPath = `/lists/${encodeURIComponent(op.listId)}/tasks`
       const created = await google(accessToken, taskPath, { method: 'POST', body: JSON.stringify(toGoogle(op.item)) })
