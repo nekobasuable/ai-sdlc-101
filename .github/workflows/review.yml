@@ -41,7 +41,10 @@ jobs:
             差分は `git diff origin/${{ github.event.pull_request.base.ref }}...HEAD` で確認できます。
             結果は日本語で、`gh pr comment` で1つのコメントとして投稿してください。
             コードは変更しないでください。
+          # 軽めにする: Sonnet を使い、1回のレビューの作業回数に上限を付ける
           claude_args: |
+            --model claude-sonnet-5-5
+            --max-turns 20
             --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*)"
 
   # PR のコメントで「@claude」と頼まれたら、対応する(修正の push を含む)
@@ -61,3 +64,6 @@ jobs:
         with:
           # API キーではなく、Claude のサブスクリプションのトークンで動かす(追加の API 料金をかけないため)
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: |
+            --model claude-sonnet-5-5
+            --max-turns 30
