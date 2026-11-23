@@ -9,12 +9,15 @@ export default function NowView({
   block,
   entries,
   owl,
+  events,
   onResult,
   onUnplace,
 }: {
   block: Block | null
   entries: NowEntry[]
   owl: OwlPose | null
+  /** 今のブロックにあるカレンダーの予定(「講義(18:00)」の形) */
+  events: string[]
   onResult: (entry: NowEntry, result: PlacementResult) => void
   onUnplace: (entry: NowEntry) => void
 }) {
@@ -31,6 +34,7 @@ export default function NowView({
     <section className="relative">
       <p className="m-0 text-xs tracking-[0.18em] text-ink-3">{block.label}のあいだ</p>
       {owl && <Owl pose={owl} className="absolute -top-8 right-2" />}
+      {events.length > 0 && <p className="m-0 mt-2 text-sm text-ink-3">この時間には、{events.join('、')}がある。</p>}
       {entries.length === 0 ? (
         <h1 className="mt-4 mb-0 font-mincho text-[30px] leading-relaxed font-normal tracking-wide lg:text-[40px]">
           何も決めていない、

@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
+import { fetchEvents } from '../data/calendar'
 import { listCandidates, listWeek, placeNow, unplace, type Item, type WeekEntry } from '../data/items'
 import type { AppSettings } from '../data/settings'
+import { placeEvents, type PlacedEvent } from '../domain/calendar-blocks'
 import { addDays, weekStartOf } from '../domain/slot'
+import { zonedMidnight } from '../domain/time'
 import { cellKey, LOW_SLACK, slackRatio, weekGrid, type Cell } from '../domain/week-grid'
 import QuoteLine from './QuoteLine'
 
@@ -9,11 +12,12 @@ const WEEKDAYS = ['月', '火', '水', '木', '金', '土', '日']
 const RESULT_LABEL: Record<string, string> = { done: '終えた', partial: '途中まで', not_done: '手放した' }
 
 // 週(R8、R10、R11、R13a)。1週間は「今」の積み重ねとして見せる(P7)。見た目はスキル life-dashboard-look
-export default function WeekView({ settings, now, onChanged }: { settings: AppSettings; now: Date; onChanged: () => void }) {
+export default function WeekView({ settings, now, version: outer, onChanged }: { settings: AppSettings; now: Date; version: number; onChanged: () => void }) {
   const [offset, setOffset] = useState(0) // 0 = 今週、1 = 来週
   // どの週の内容かを一緒に持ち、週を切り替えた直後に前の週の内容を重ねて見せない
   const [loaded, setLoaded] = useState<{ weekStart: string; entries: WeekEntry[] } | null>(null)
   const [candidates, setCandidates] = useState<Item[]>([])
+  const [events, setEvents] = useState<{ weekStart: string; placed: PlacedEvent[] } | null>(null)
   const [drawing, setDrawing] = useState<{ day: number; blockId: string | null } | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [version, setVersion] = useState(0)
@@ -30,10 +34,16 @@ export default function WeekView({ settings, now, onChanged }: { settings: AppSe
       setLoaded({ weekStart, entries: week.data })
       setCandidates(cands.data)
     })
+    // カレンダーの予定(spec R9)。読めなくても週の画面は使える
+    const [y, m, d] = weekStart.split('-').map(Number)
+    const next = addDays(weekStart, 7).split('-').map(Number)
+    void fetchEvents(zonedMidnight(y, m, d, settings.timeZone), zonedMidnight(next[0], next[1], next[2], settings.timeZone)).then((res) => {
+      if (active && res.ok) setEvents({ weekStart, placed: placeEvents(res.data, weekStart, settings.timeZone, settings.blocks) })
+    })
     return () => {
       active = false
     }
-  }, [weekStart, version])
+  }, [weekStart, version, outer, settings.timeZone, settings.blocks])
 
   async function run(action: Promise<{ ok: boolean; message?: string }>) {
     const res = await action
@@ -45,6 +55,7 @@ export default function WeekView({ settings, now, onChanged }: { settings: AppSe
   }
 
   const entries = loaded?.weekStart === weekStart ? loaded.entries : []
+  const weekEvents = events?.weekStart === weekStart ? events.placed : []
   const filled = new Set(entries.map((e) => cellKey(e.day, e.blockId)))
   const slack = slackRatio(grid, filled)
 
@@ -79,6 +90,7 @@ export default function WeekView({ settings, now, onChanged }: { settings: AppSe
               key={day[0].date}
               cells={day}
               entries={entries.filter((e) => e.day === day[0].day)}
+              events={weekEvents.filter((e) => e.day === day[0].day)}
               candidates={candidates}
               drawing={drawing?.day === day[0].day ? drawing : null}
               onDraw={(blockId) => setDrawing({ day: day[0].day, blockId })}
@@ -103,6 +115,7 @@ export default function WeekView({ settings, now, onChanged }: { settings: AppSe
 function Day({
   cells,
   entries,
+  events,
   candidates,
   drawing,
   onDraw,
@@ -112,6 +125,7 @@ function Day({
 }: {
   cells: Cell[]
   entries: WeekEntry[]
+  events: PlacedEvent[]
   candidates: Item[]
   drawing: { blockId: string | null } | null
   onDraw: (blockId: string | null) => void
@@ -132,7 +146,19 @@ function Day({
         <div className="text-xs">{WEEKDAYS[first.day]}</div>
       </div>
       <div className="flex flex-1 flex-col gap-1.5 pt-1 text-[15px] leading-relaxed">
-        {entries.length === 0 && <span className="font-mincho text-sm tracking-[0.2em] text-ink-3">余白の一日</span>}
+        {events.filter((e) => e.time === null).map((e) => (
+          <span key={`${e.id}-allday`} className="text-sm text-ink-3">
+            一日、{e.title}
+          </span>
+        ))}
+        {entries.length === 0 && events.length === 0 && <span className="font-mincho text-sm tracking-[0.2em] text-ink-3">余白の一日</span>}
+        {events
+          .filter((e) => e.time !== null)
+          .map((e) => (
+            <span key={e.id} className="text-sm text-ink-3">
+              {e.time}　{e.title}
+            </span>
+          ))}
         {cells.map((cell) =>
           entries
             .filter((e) => e.blockId === cell.block.id)

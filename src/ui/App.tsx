@@ -2,20 +2,21 @@ import { useEffect, useState } from 'react'
 import { listInbox, listNow, listWeek, placeNow, setResult, unplace, type Item, type NowEntry, type WeekEntry } from '../data/items'
 import { ensureSettings, type AppSettings } from '../data/settings'
 import { signOut, supabase } from '../data/supabase'
-import { syncNow } from '../data/sync'
+import { fetchEvents } from '../data/calendar'
 import { currentBlock } from '../domain/blocks'
+import { placeEvents, type PlacedEvent } from '../domain/calendar-blocks'
 import { owlFor } from '../domain/owl'
 import { joinLabels, restOfDay } from '../domain/rest-of-day'
 import { currentSlot, weekStartOf, type Slot } from '../domain/slot'
 import { zonedParts } from '../domain/time'
+import { weekRange } from '../domain/week'
 import Capture from './Capture'
 import InboxList from './InboxList'
 import NowView from './NowView'
 import Owl from './Owl'
 import QuoteLine from './QuoteLine'
 import SignIn from './SignIn'
-import SpikePanel from './SpikePanel'
-import SyncSettings from './SyncSettings'
+import { useAutoSync } from './useAutoSync'
 import WeekView from './WeekView'
 
 export default function App() {
@@ -41,6 +42,7 @@ function Home() {
   const [now, setNow] = useState(() => new Date())
   const [entries, setEntries] = useState<NowEntry[]>([])
   const [today, setToday] = useState<WeekEntry[]>([])
+  const [events, setEvents] = useState<PlacedEvent[]>([])
   const [inbox, setInbox] = useState<Item[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const [tab, setTab] = useState<'now' | 'week'>('now')
@@ -54,12 +56,9 @@ function Home() {
   useEffect(() => {
     ensureSettings().then((res) => (res.ok ? setSettings(res.data) : setMessage(res.message)))
   }, [])
-  // アプリを開いたときに、Google ToDo と同期する(spec R34)。失敗しても画面は使える
-  useEffect(() => {
-    void syncNow().then((res) => res.ok && res.data.applied > 0 && setVersion((v) => v + 1))
-  }, [])
-
   const reload = () => setVersion((v) => v + 1)
+  // 操作なしで Google ToDo と同期し、そのたびにカレンダーも読み直す(spec 変更 3)。失敗しても画面は使える
+  const syncNotice = useAutoSync(reload)
   const tz = settings?.timeZone ?? 'Asia/Tokyo'
   const slot = settings ? currentSlot(now, tz, settings.blocks) : null
   const block = settings ? currentBlock(now, tz, settings.blocks) : null
@@ -71,12 +70,19 @@ function Home() {
   useEffect(() => {
     if (!settings) return
     let active = true
-    void loadHome(currentSlot(new Date(), settings.timeZone, settings.blocks), weekStartOf(new Date(), settings.timeZone)).then((res) => {
+    const at = new Date()
+    const weekStart = weekStartOf(at, settings.timeZone)
+    void loadHome(currentSlot(at, settings.timeZone, settings.blocks), weekStart).then((res) => {
       if (!active) return
       if ('message' in res) return setMessage(res.message)
       setInbox(res.inbox)
       setEntries(res.entries)
       setToday(res.week)
+    })
+    // カレンダーは読めなくても画面は使えるので、失敗は黙って前の予定のままにする
+    const { start, end } = weekRange(at, settings.timeZone)
+    void fetchEvents(start, end).then((res) => {
+      if (active && res.ok) setEvents(placeEvents(res.data, weekStart, settings.timeZone, settings.blocks))
     })
     return () => {
       active = false
@@ -102,6 +108,11 @@ function Home() {
   // 今日のこれから: 今のブロックより後の予定を文章に(スキル)
   const bodies = new Map<string, string[]>()
   for (const e of today) if (e.day === dayIndex && e.blockId !== block?.id) bodies.set(e.blockId, [...(bodies.get(e.blockId) ?? []), e.item.body])
+  // カレンダーの予定も、今日のこれからに混ぜる(spec R9)
+  const todayEvents = events.filter((e) => e.day === dayIndex)
+  for (const e of todayEvents) if (e.blockId && e.blockId !== block?.id) bodies.set(e.blockId, [...(bodies.get(e.blockId) ?? []), `${e.title}(${e.time})`])
+  const nowEvents = todayEvents.filter((e) => e.blockId !== null && e.blockId === block?.id).map((e) => `${e.title}(${e.time})`)
+  const allDay = todayEvents.filter((e) => e.time === null).map((e) => e.title)
   const rest = restOfDay(settings.blocks, block?.id ?? null, bodies)
   const owl = owlFor(block, entries.length > 0, date)
   const scene = !block || block.id === 'night' ? 'night' : 'day'
@@ -124,7 +135,7 @@ function Home() {
 
       {tab === 'week' ? (
         <div className="mx-auto mt-10 max-w-2xl">
-          <WeekView settings={settings} now={now} onChanged={reload} />
+          <WeekView settings={settings} now={now} version={version} onChanged={reload} />
           {captureBar('lg:static lg:mt-12 lg:px-0 lg:pb-0')}
         </div>
       ) : (
@@ -134,6 +145,7 @@ function Home() {
               block={block}
               entries={entries}
               owl={owl.spot === 'heading' ? owl.pose : null}
+              events={nowEvents}
               onResult={(entry, result) => run(setResult(entry, result))}
               onUnplace={(entry) => run(unplace(entry))}
             />
@@ -155,6 +167,7 @@ function Home() {
                 ))}
                 {rest.free.length > 0 && <span className="text-ink-3">{joinLabels(rest.free)}は、まだ何も決めていない。</span>}
                 {rest.planned.length === 0 && rest.free.length === 0 && <span className="text-ink-3">今日は、これでおしまい。</span>}
+                {allDay.length > 0 && <span className="text-ink-3">今日は一日、{allDay.join('、')}。</span>}
               </div>
               {owl.spot === 'aside' && <Owl pose={owl.pose} className="absolute -top-14 right-0" />}
             </section>
@@ -172,8 +185,7 @@ function Home() {
       )}
 
       <footer className="mx-auto mt-24 flex max-w-6xl flex-col gap-6">
-        <SyncSettings onSynced={reload} />
-        <SpikePanel timeZone={tz} />
+        {syncNotice && <p className="m-0 text-sm text-ink-3">{syncNotice}</p>}
         <button type="button" onClick={signOut} className="min-h-11 self-start text-sm text-ink-3">
           ログアウト
         </button>

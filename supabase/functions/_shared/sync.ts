@@ -124,3 +124,20 @@ export function statusFromTask(task: RemoteTask, current: LocalItem['status']): 
   if (task.completed) return 'done'
   return current === 'done' ? 'inbox' : current
 }
+
+export type StoredLink = ListLink
+
+/**
+ * Google から取ったリストの一覧を、同期の対象のリストにする(spec 変更 3、R29、R31)。
+ * すべてのリストを対象にし、保管された結びつきは領域の上書きにだけ使う。
+ * 既定のリストは、保管された既定(今もあるもの)、なければ一覧の最初。
+ */
+export function linksFromLists(lists: { id: string }[], stored: StoredLink[]): ListLink[] {
+  const storedDefault = stored.find((s) => s.isDefault && lists.some((l) => l.id === s.listId))?.listId
+  const defaultId = storedDefault ?? lists[0]?.id
+  return lists.map((l) => ({
+    listId: l.id,
+    area: stored.find((s) => s.listId === l.id)?.area ?? null,
+    isDefault: l.id === defaultId,
+  }))
+}
