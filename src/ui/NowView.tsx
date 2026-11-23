@@ -1,64 +1,74 @@
 import type { NowEntry, PlacementResult } from '../data/items'
 import type { Block } from '../domain/blocks'
+import type { OwlPose } from '../domain/owl'
+import HandCircle from './HandCircle'
+import Owl from './Owl'
 
-const RESULTS: { value: PlacementResult; label: string }[] = [
-  { value: 'done', label: 'やった' },
-  { value: 'partial', label: '一部' },
-  { value: 'not_done', label: 'やらなかった' },
-]
-
-// 今の画面(R13)。今のブロックだけを大きく見せる(P7)
+// 今の画面(R13、R14、R14a)。今やることだけを大きく(P7)
 export default function NowView({
   block,
   entries,
+  owl,
   onResult,
   onUnplace,
 }: {
   block: Block | null
   entries: NowEntry[]
+  owl: OwlPose | null
   onResult: (entry: NowEntry, result: PlacementResult) => void
   onUnplace: (entry: NowEntry) => void
 }) {
   if (!block) {
     return (
-      <section>
-        <p className="text-sm text-stone-500">今</p>
-        <h1 className="text-3xl">静かな時間です</h1>
+      <section className="relative">
+        <h1 className="m-0 font-mincho text-[30px] leading-relaxed font-normal tracking-wide lg:text-[40px]">静かな時間。</h1>
+        {owl && <Owl pose={owl} className="absolute -top-14 right-2" />}
       </section>
     )
   }
+  const large = entries.length <= 1
   return (
-    <section className="space-y-4">
-      <div>
-        <p className="text-sm text-stone-500">今</p>
-        <h1 className="text-3xl">{block.label}の時間です</h1>
-      </div>
+    <section className="relative">
+      <p className="m-0 text-xs tracking-[0.18em] text-ink-3">{block.label}のあいだ</p>
+      {owl && <Owl pose={owl} className="absolute -top-8 right-2" />}
       {entries.length === 0 ? (
-        <p className="text-stone-500">今は余白の時間です。</p>
+        <h1 className="mt-4 mb-0 font-mincho text-[30px] leading-relaxed font-normal tracking-wide lg:text-[40px]">
+          何も決めていない、
+          <br />
+          余白の時間。
+        </h1>
       ) : (
-        <ul className="space-y-4">
+        <div className="mt-4 flex flex-col gap-8">
           {entries.map((entry) => (
-            <li key={entry.placementId} className="space-y-2 rounded border border-stone-200 bg-white p-4">
-              <p className="text-xl">{entry.item.body}</p>
-              <div className="flex flex-wrap gap-2">
-                {RESULTS.map((r) => (
-                  <button
-                    key={r.value}
-                    onClick={() => onResult(entry, r.value)}
-                    className={`rounded border px-3 py-1 text-sm ${
-                      entry.result === r.value ? 'border-stone-700 bg-stone-700 text-white' : 'border-stone-300 text-stone-700'
-                    }`}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-                <button onClick={() => onUnplace(entry)} className="px-3 py-1 text-sm text-stone-400">
-                  外す
-                </button>
+            <div key={entry.placementId}>
+              <div className="flex items-start gap-3">
+                <HandCircle
+                  checked={entry.result === 'done'}
+                  label={entry.result === 'done' ? '終えた(押すと途中までに戻す)' : '終えた'}
+                  onClick={() => onResult(entry, entry.result === 'done' ? 'partial' : 'done')}
+                />
+                <h1
+                  className={`m-0 font-mincho leading-relaxed font-normal tracking-wide ${large ? 'text-[30px] lg:text-[44px]' : 'text-2xl lg:text-3xl'} ${entry.result === 'done' ? 'text-ink-3' : ''}`}
+                >
+                  {entry.item.body}
+                </h1>
               </div>
-            </li>
+              <div className="mt-3 ml-12 flex flex-wrap gap-x-5 font-hand text-[15px]">
+                <button type="button" onClick={() => onResult(entry, 'partial')} className={`min-h-11 ${entry.result === 'partial' ? 'text-ink underline decoration-rule underline-offset-[6px]' : 'text-ink-3'}`}>
+                  途中まで
+                </button>
+                <button type="button" onClick={() => onResult(entry, 'not_done')} className={`min-h-11 ${entry.result === 'not_done' ? 'text-ink underline decoration-rule underline-offset-[6px]' : 'text-ink-3'}`}>
+                  今日は手放す
+                </button>
+                {!entry.result && (
+                  <button type="button" onClick={() => onUnplace(entry)} className="min-h-11 text-ink-3">
+                    ここから外す
+                  </button>
+                )}
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </section>
   )

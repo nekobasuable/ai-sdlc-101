@@ -22,10 +22,10 @@ export default function SpikePanel({ timeZone }: { timeZone: string }) {
 
   if (!record) return null
   return (
-    <details className="rounded bg-stone-100 p-3 text-sm text-stone-600">
+    <details className="text-xs text-ink-3">
       <summary>試作: カレンダーの診断(plan/002)</summary>
       <div className="mt-2 space-y-1">
-        <button className="rounded border border-stone-300 px-3 py-1" onClick={loadCalendar}>
+        <button type="button" className="min-h-11 font-hand text-sm text-ink-2" onClick={loadCalendar}>
           今週の予定を読む
         </button>
         {result?.kind === 'ok' && (
