@@ -74,4 +74,13 @@ provider token の結果に応じて、次の plan でカレンダー連携の�
 - Supabase は再読み込みやセッションの更新で provider token を落とすことがある。そのため、ログイン直後の provider token をブラウザに控え、Google 側でいつ切れるかを測れるようにした(試作用の記録。長期の鍵そのものは保存しない)。
 
 ## 試作の結果
-(動作確認後に追記)
+### 2026-11-23 13:26 の初回確認(プロダクトオーナーが実施)
+- PC: Google ログインに成功。カレンダー用の鍵(provider token)と長期の鍵(provider refresh token)の両方を受け取れた。
+- 今週の予定が Google カレンダーと一致して表示された。
+- スマホ: ログインと予定の読み取りの両方に成功。
+- 未審査アプリの警告画面は出た(想定どおり。「詳細」から進める)。
+- 設定でつまずいた点: 初回は `redirect_uri_mismatch`。Google Cloud のリダイレクト URI を、Supabase の Google の設定画面にある Callback URL をコピーして貼り直して解決した。準備の手順は、Callback URL を手で組み立てさせず、Supabase の画面からコピーさせる形にすべきだった。
+- 範囲外の発見: Google ToDo リスト(Google Tasks)のタスクは表示されない。Calendar API の予定とは別の API のため。spec の変更として扱う。
+
+### 時間をおいた確認
+(1時間後、翌日の結果を追記)
