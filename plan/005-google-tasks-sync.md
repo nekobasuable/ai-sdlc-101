@@ -99,3 +99,4 @@
 - 段階 C: 領域の一覧を `src/domain/areas.ts` に切り出した(同期の設定の画面で使うため)。
 - 段階 C: サーバー側の関数(`google-tasks`、`google-token`)の型チェックは、手元に Deno がないため行えていない。判断の処理は `_shared/sync.ts` に寄せて Vitest でテストし、関数そのものは本番で確かめる(計画のリスクどおり)。
 - 段階 B の不具合: ログイン直後に長期の鍵をサーバーへ送る処理が、ログイン後にしか表示されない部品(SpikePanel)の中で登録されていたため、ログインの知らせを取りこぼしていた(plan/004 での画面の組み替えで混入)。登録を `src/data/supabase.ts` の読み込み時に移した。本番で `google_credentials` が空だったことで見つかった。
+- 段階 B の不具合(2つ目): 本番で `google-token` が「permission denied for table google_credentials」で失敗した。Supabase クラウドでは service_role にもテーブルの権限が自動で付かないため。権限を明示するマイグレーションを足し、データベースのテストに2件足した(計19件)。plan/004 と同じ種類の間違いの2回目なので、CLAUDE.md に追記した。

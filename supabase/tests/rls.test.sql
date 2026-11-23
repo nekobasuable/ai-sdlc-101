@@ -1,7 +1,7 @@
 -- plan/003 の証明: 本人の行だけを読み書きできる(spec N6)
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(17);
+select plan(19);
 
 -- public スキーマに、RLS が無効なテーブルが1つもない
 select is_empty(
@@ -15,6 +15,9 @@ select ok(has_table_privilege('authenticated', 'public.settings', 'SELECT'), '�
 select ok(has_table_privilege('authenticated', 'public.items', 'INSERT'), 'ログインユーザーは items に書ける');
 select ok(not has_table_privilege('anon', 'public.items', 'SELECT'), 'anon には items の権限がない');
 select ok(not has_table_privilege('authenticated', 'public.google_credentials', 'SELECT'), 'ログインユーザーにも google_credentials の権限がない');
+
+select ok(has_table_privilege('service_role', 'public.google_credentials', 'INSERT'), 'サーバー側の関数(service_role)は google_credentials に書ける');
+select ok(has_table_privilege('service_role', 'public.items', 'UPDATE'), 'サーバー側の関数(service_role)は items を更新できる');
 
 -- 2人のユーザーを用意する
 insert into auth.users (id, email) values
