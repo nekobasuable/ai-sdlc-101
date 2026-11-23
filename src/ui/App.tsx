@@ -9,6 +9,8 @@ import InboxList from './InboxList'
 import NowView from './NowView'
 import SignIn from './SignIn'
 import SpikePanel from './SpikePanel'
+import SyncSettings from './SyncSettings'
+import { syncNow } from '../data/sync'
 
 export default function App() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null)
@@ -31,6 +33,8 @@ function Home() {
   const [entries, setEntries] = useState<NowEntry[]>([])
   const [inbox, setInbox] = useState<Item[]>([])
   const [message, setMessage] = useState<string | null>(null)
+  // 項目の変更や、ブロックの切り替わり(slotKey の変化)のたびに読み直す
+  const [version, setVersion] = useState(0)
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000)
@@ -39,13 +43,15 @@ function Home() {
   useEffect(() => {
     ensureSettings().then((res) => (res.ok ? setSettings(res.data) : setMessage(res.message)))
   }, [])
+  // アプリを開いたときに、Google ToDo と同期する(spec R34)。失敗しても画面は使える
+  useEffect(() => {
+    void syncNow().then((res) => res.ok && res.data.applied > 0 && setVersion((v) => v + 1))
+  }, [])
 
   const slot = settings ? currentSlot(now, settings.timeZone, settings.blocks) : null
   const block = settings ? currentBlock(now, settings.timeZone, settings.blocks) : null
   const slotKey = slot ? `${slot.weekStart}/${slot.day}/${slot.blockId}` : 'none'
 
-  // 項目の変更や、ブロックの切り替わり(slotKey の変化)のたびに読み直す
-  const [version, setVersion] = useState(0)
   const reload = () => setVersion((v) => v + 1)
 
   useEffect(() => {
@@ -81,6 +87,7 @@ function Home() {
       />
       {message && <p className="text-sm text-stone-500">{message}</p>}
       <InboxList items={inbox} canPlace={slot !== null} onPlace={(item) => slot && run(placeNow(item.id, slot))} />
+      <SyncSettings onSynced={reload} />
       <SpikePanel timeZone={settings.timeZone} />
       <button className="text-sm text-stone-400" onClick={signOut}>
         ログアウト

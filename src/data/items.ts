@@ -23,6 +23,7 @@ export async function listInbox(): Promise<DataResult<Item[]>> {
     .from('items')
     .select('id, body, status')
     .eq('status', 'inbox')
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
   return toResult(data, error)
 }
@@ -32,7 +33,7 @@ export async function listNow(slot: Slot): Promise<DataResult<NowEntry[]>> {
   if (!supabase) return NOT_CONFIGURED
   const { data, error } = await supabase
     .from('placements')
-    .select('id, result, item:items(id, body, status)')
+    .select('id, result, item:items(id, body, status, deleted_at)')
     .eq('week_start', slot.weekStart)
     .eq('day', slot.day)
     .eq('block_id', slot.blockId)
@@ -40,7 +41,12 @@ export async function listNow(slot: Slot): Promise<DataResult<NowEntry[]>> {
   if (error) return failure(error)
   return {
     ok: true,
-    data: data.flatMap((p) => (p.item ? [{ placementId: p.id, result: p.result as PlacementResult | null, item: p.item }] : [])),
+    // 削除済み(Google ToDo で消された項目など)は出さない
+    data: data.flatMap((p) =>
+      p.item && !p.item.deleted_at
+        ? [{ placementId: p.id, result: p.result as PlacementResult | null, item: { id: p.item.id, body: p.item.body, status: p.item.status } }]
+        : [],
+    ),
   }
 }
 

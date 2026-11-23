@@ -1,7 +1,7 @@
 -- plan/003 の証明: 本人の行だけを読み書きできる(spec N6)
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(15);
+select plan(17);
 
 -- public スキーマに、RLS が無効なテーブルが1つもない
 select is_empty(
@@ -69,6 +69,14 @@ select throws_ok(
   $$ insert into public.google_credentials (user_id, encrypted_refresh_token) values ('00000000-0000-0000-0000-00000000000a', 'x') $$,
   '42501', null, '本人でも google_credentials に書けない'
 );
+
+-- 同期の書き込みでは synced_at が updated_at とそろい、利用者の変更では updated_at だけが進む(plan/005)
+reset role;
+update public.items set body = '統計のレポート(同期)', synced_at = '2000-01-01' where id = '11111111-1111-1111-1111-111111111111';
+select ok((select synced_at = updated_at from public.items where id = '11111111-1111-1111-1111-111111111111'), '同期の書き込みでは synced_at = updated_at');
+-- 同じトランザクションの中では now() が変わらないため、利用者の変更は「updated_at が synced_at と同じか後」で確かめる
+update public.items set body = '利用者の変更' where id = '11111111-1111-1111-1111-111111111111';
+select ok((select synced_at is not null and updated_at >= synced_at from public.items where id = '11111111-1111-1111-1111-111111111111'), '利用者の変更では synced_at は変わらない');
 
 select * from finish();
 rollback;
