@@ -50,7 +50,7 @@ export async function listNow(slot: Slot): Promise<DataResult<NowEntry[]>> {
   }
 }
 
-/** 今やる(R14a)。今のブロックに置き、Inbox から外す */
+/** ブロックに置く(今やる R14a、週の計画 R8)。Inbox から外して候補にする */
 export async function placeNow(itemId: string, slot: Slot): Promise<DataResult<null>> {
   if (!supabase) return NOT_CONFIGURED
   const placed = await supabase
@@ -76,6 +76,44 @@ export async function unplace(entry: NowEntry): Promise<DataResult<null>> {
   if (!supabase) return NOT_CONFIGURED
   const removed = await supabase.from('placements').delete().eq('id', entry.placementId)
   if (removed.error) return failure(removed.error)
-  const { error } = await supabase.from('items').update({ status: 'inbox' }).eq('id', entry.item.id)
+  // ほかのブロックにも置いてあれば、候補のままにする
+  const rest = await supabase.from('placements').select('id', { count: 'exact', head: true }).eq('item_id', entry.item.id)
+  if (rest.error) return failure(rest.error)
+  if ((rest.count ?? 0) > 0) return { ok: true, data: null }
+  // Inbox に戻すのは、候補(未完了)のときだけ。完了した項目は完了のままにする(PR #2 のレビューの指摘)
+  const { error } = await supabase.from('items').update({ status: 'inbox' }).eq('id', entry.item.id).eq('status', 'candidate')
   return toResult(null, error)
+}
+
+export type WeekEntry = NowEntry & { day: number; blockId: string }
+
+/** 週に置いた項目(R13a) */
+export async function listWeek(weekStart: string): Promise<DataResult<WeekEntry[]>> {
+  if (!supabase) return NOT_CONFIGURED
+  const { data, error } = await supabase
+    .from('placements')
+    .select('id, day, block_id, result, item:items(id, body, status, deleted_at)')
+    .eq('week_start', weekStart)
+    .order('created_at')
+  if (error) return failure(error)
+  return {
+    ok: true,
+    data: data.flatMap((p) =>
+      p.item && !p.item.deleted_at
+        ? [{ placementId: p.id, day: p.day, blockId: p.block_id, result: p.result as PlacementResult | null, item: { id: p.item.id, body: p.item.body, status: p.item.status } }]
+        : [],
+    ),
+  }
+}
+
+/** ブロックに置ける候補: 完了しておらず、「いつか/やらない」でもない項目 */
+export async function listCandidates(): Promise<DataResult<Item[]>> {
+  if (!supabase) return NOT_CONFIGURED
+  const { data, error } = await supabase
+    .from('items')
+    .select('id, body, status')
+    .in('status', ['inbox', 'candidate'])
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+  return toResult(data, error)
 }

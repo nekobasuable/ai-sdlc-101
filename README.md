@@ -11,5 +11,5 @@ https://claude.com/ja/resources/articles/the-ai-native-sdlc-playbook
 | 2 Design | spec/*.md | 完了 |
 | 3 Build | CLAUDE.md, hooks, plan/*.md | 進行中(スキルとサブエージェントは未経験) |
 | 4 Test | npm run lint / test / test:db, evals | 進行中(evals は未経験) |
-| 5 Deploy | REVIEW.md, CI, 自動配信 | 進行中(plan/006) |
+| 5 Deploy | REVIEW.md, CI, AI レビュー, main からの自動配信 | PR レビューの流れが完成(承認ゲートのフックは未経験) |
 | 6 Maintain | bands.yaml, スキャン | 未着手 |
