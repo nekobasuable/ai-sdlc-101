@@ -22,7 +22,7 @@
 職務の分離: コードを書くのはこの会話の Claude、レビューするのは GitHub Actions 上の別の Claude、承認するのはあなた。
 
 ## あなたにお願いする準備
-1. **Anthropic の API キー**: console.anthropic.com で API キーを作り、GitHub の Secrets に `ANTHROPIC_API_KEY` として登録する。あわせて、console の利用上限(月の上限額)を低めに設定する。
+1. **Claude のサブスクリプションのトークン**: Mac で `claude setup-token` を実行してトークンを作り、GitHub の Secrets に `CLAUDE_CODE_OAUTH_TOKEN` として登録する(下の「計画からのずれ」を参照)。
 2. **GitHub Pages の配信元に main を追加**: Environments → github-pages の配信可能ブランチに `main` を足す(種類は Branch)。
 3. **main の保護(実装後)**: Settings → Rules → Rulesets で main に「PR を必須にする」「CI の合格を必須にする」「強制 push を禁止」を設定する。承認の人数は 0 にする(PR はあなたのアカウントで作られるため、自分の PR を承認できない GitHub の仕様に引っかかる。マージする行為そのものを承認とみなす)。
 
@@ -63,3 +63,6 @@
 - PR に、CI の4つのチェック(lint、単体テスト、ビルド、DB テスト)の合格が表示される。
 - PR に、AI レビューのコメントが付き、指摘に REVIEW.md のパス名(Bugs、Security、Compliance)が付いている。
 - あなたがマージすると、main への push で本番への配信が成功し、アプリが今までどおり動く。
+
+## 計画からのずれ
+- AI レビューの認証を、Anthropic の API キーから Claude のサブスクリプションのトークン(`claude setup-token`)に変えた。API は前払いのクレジットが必要で、プロダクトオーナーが追加の費用を避けたいため。利用はサブスクリプションの利用枠から引かれる。動かなければ、この会話から別の Claude(サブエージェント)にレビューさせる案に切り替える。
