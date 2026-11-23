@@ -63,9 +63,9 @@ jobs:
           supabase link --project-ref "$ref"
       - name: Mark manually applied migrations
         if: ${{ inputs.repair_initial_migrations }}
-        run: supabase migration repair --remote --status applied 20261123000000 20261123010000
+        run: supabase migration repair --remote --yes --status applied 20261123000000 20261123010000
       - name: Apply migrations
-        run: supabase db push --remote
+        run: supabase db push --remote --yes
       - name: Deploy functions
         run: |
           if ls supabase/functions/*/index.ts >/dev/null 2>&1; then
