@@ -3,6 +3,7 @@ import { fetchEvents } from '../data/calendar'
 import { listCandidates, listDue, listWeek, placeNow, unplace, type Item, type WeekEntry } from '../data/items'
 import type { AppSettings } from '../data/settings'
 import { placeEvents, type PlacedEvent } from '../domain/calendar-blocks'
+import { secondQuadrantFirst } from '../domain/quadrant'
 import { addDays, weekStartOf } from '../domain/slot'
 import { zonedMidnight } from '../domain/time'
 import { cellKey, LOW_SLACK, slackRatio, weekGrid, type Cell } from '../domain/week-grid'
@@ -224,15 +225,16 @@ function Day({
             </div>
             {pickBlock && (
               <ul className="m-0 flex list-none flex-col p-0">
-                {candidates
-                  .filter((c) => !entries.some((e) => e.blockId === pickBlock.block.id && e.item.id === c.id))
-                  .map((item) => (
+                {secondQuadrantFirst(candidates.filter((c) => !entries.some((e) => e.blockId === pickBlock.block.id && e.item.id === c.id))).map(
+                  (item) => (
                     <li key={item.id}>
                       <button type="button" onClick={() => onPlace(item, pickBlock.block.id)} className="min-h-11 text-left text-[15px] text-ink-2">
                         {item.body}
+                        {item.quadrant === 2 && <span className="font-hand text-sm text-ink-3">　大切で、急がないこと</span>}
                       </button>
                     </li>
-                  ))}
+                  ),
+                )}
                 {candidates.length === 0 && <li className="text-sm text-ink-3">置けるものは、いまはない。</li>}
               </ul>
             )}
