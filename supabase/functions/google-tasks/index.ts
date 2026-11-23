@@ -2,23 +2,20 @@
 // 操作は2つ: { action: 'lists' } でリストの一覧、{ action: 'sync' } で同期の実行。
 // 判断は _shared/sync.ts の planSync に任せ、ここは通信と適用だけを行う。
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
-import { decrypt } from '../_shared/crypto.ts'
+import { googleAccessToken, ReconnectNeeded, signedInUser } from '../_shared/google-auth.ts'
 import { corsHeaders, json } from '../_shared/http.ts'
-import { planSync, statusFromTask, type ListLink, type LocalItem, type RemoteTask, type SyncOp } from '../_shared/sync.ts'
+import { linksFromLists, planSync, statusFromTask, type LocalItem, type RemoteTask, type StoredLink, type SyncOp } from '../_shared/sync.ts'
 
 const TASKS_API = 'https://tasks.googleapis.com/tasks/v1'
 
-class ReconnectNeeded extends Error {}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) })
   if (req.method !== 'POST') return json(req, 405, { error: 'method not allowed' })
 
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
-  const jwt = (req.headers.get('authorization') ?? '').replace(/^Bearer /, '')
-  const { data: userData, error: userError } = await admin.auth.getUser(jwt)
-  if (userError || !userData.user) return json(req, 401, { error: 'not signed in' })
-  const userId = userData.user.id
+  const userId = await signedInUser(admin, req)
+  if (!userId) return json(req, 401, { error: 'not signed in' })
 
   const { action } = (await req.json().catch(() => ({}))) as { action?: string }
   try {
@@ -32,32 +29,6 @@ Deno.serve(async (req) => {
     return json(req, 500, { error: 'failed' })
   }
 })
-
-/** 保管してある長期の鍵で、短期の鍵を取る。鍵が使えなくなっていたら、つなぎ直しが必要 */
-async function googleAccessToken(admin: SupabaseClient, userId: string): Promise<string> {
-  const { data } = await admin.from('google_credentials').select('encrypted_refresh_token, invalid_at').eq('user_id', userId).maybeSingle()
-  if (!data || data.invalid_at) throw new ReconnectNeeded()
-  const refreshToken = await decrypt(data.encrypted_refresh_token, Deno.env.get('GOOGLE_TOKEN_KEY')!)
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: Deno.env.get('GOOGLE_CLIENT_ID')!,
-      client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
-      refresh_token: refreshToken,
-      grant_type: 'refresh_token',
-    }),
-  })
-  const body = await res.json()
-  if (!res.ok) {
-    if (body.error === 'invalid_grant') {
-      await admin.from('google_credentials').update({ invalid_at: new Date().toISOString() }).eq('user_id', userId)
-      throw new ReconnectNeeded()
-    }
-    throw new Error(`token refresh failed: ${res.status} ${body.error ?? ''}`)
-  }
-  return body.access_token as string
-}
 
 async function google(accessToken: string, path: string, init: RequestInit = {}) {
   const res = await fetch(`${TASKS_API}${path}`, {
@@ -142,8 +113,10 @@ async function runSync(admin: SupabaseClient, userId: string, accessToken: strin
 }
 
 async function runSyncLocked(admin: SupabaseClient, userId: string, accessToken: string) {
+  // すべてのリストを同期する(spec 変更 3、R29)。保管された結びつきは、領域と既定の上書きにだけ使う
   const { data: linkRows } = await admin.from('task_list_links').select('google_list_id, area, is_default').eq('user_id', userId)
-  const links: ListLink[] = (linkRows ?? []).map((l) => ({ listId: l.google_list_id, area: l.area, isDefault: l.is_default }))
+  const stored: StoredLink[] = (linkRows ?? []).map((l) => ({ listId: l.google_list_id, area: l.area, isDefault: l.is_default }))
+  const links = linksFromLists(await fetchLists(accessToken), stored)
   if (links.length === 0) return { applied: 0, failed: 0 }
 
   const { data: itemRows, error } = await admin

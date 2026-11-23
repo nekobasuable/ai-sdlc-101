@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { planSync, statusFromTask, type ListLink, type LocalItem, type RemoteTask } from './sync.ts'
+import { linksFromLists, planSync, statusFromTask, type ListLink, type LocalItem, type RemoteTask } from './sync.ts'
 
 const T0 = '2026-11-20T00:00:00.000Z' // 前回の同期
 const T1 = '2026-11-21T00:00:00.000Z'
@@ -124,5 +124,32 @@ describe('statusFromTask', () => {
   it('Google で完了を外したら、Inbox に戻す。それ以外の状態はそのまま', () => {
     expect(statusFromTask(task(), 'done')).toBe('inbox')
     expect(statusFromTask(task(), 'someday')).toBe('someday')
+  })
+})
+
+describe('linksFromLists', () => {
+  const lists = [{ id: 'mytasks' }, { id: 'univ' }, { id: 'shopping' }]
+
+  it('すべてのリストを対象にし、何も保管されていなければ最初のリストを既定にする', () => {
+    expect(linksFromLists(lists, [])).toEqual([
+      { listId: 'mytasks', area: null, isDefault: true },
+      { listId: 'univ', area: null, isDefault: false },
+      { listId: 'shopping', area: null, isDefault: false },
+    ])
+  })
+
+  it('保管された領域と既定を上書きに使う', () => {
+    const links = linksFromLists(lists, [{ listId: 'univ', area: 'school', isDefault: true }])
+    expect(links.find((l) => l.listId === 'univ')).toEqual({ listId: 'univ', area: 'school', isDefault: true })
+    expect(links.find((l) => l.listId === 'mytasks')?.isDefault).toBe(false)
+  })
+
+  it('保管された既定のリストがもうなければ、最初のリストを既定にする', () => {
+    const links = linksFromLists(lists, [{ listId: 'deleted', area: null, isDefault: true }])
+    expect(links.filter((l) => l.isDefault).map((l) => l.listId)).toEqual(['mytasks'])
+  })
+
+  it('リストが1つもなければ、対象もない', () => {
+    expect(linksFromLists([], [])).toEqual([])
   })
 })
