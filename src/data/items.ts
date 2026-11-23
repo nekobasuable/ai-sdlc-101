@@ -80,7 +80,8 @@ export async function unplace(entry: NowEntry): Promise<DataResult<null>> {
   const rest = await supabase.from('placements').select('id', { count: 'exact', head: true }).eq('item_id', entry.item.id)
   if (rest.error) return failure(rest.error)
   if ((rest.count ?? 0) > 0) return { ok: true, data: null }
-  const { error } = await supabase.from('items').update({ status: 'inbox' }).eq('id', entry.item.id)
+  // Inbox に戻すのは、候補(未完了)のときだけ。完了した項目は完了のままにする(PR #2 のレビューの指摘)
+  const { error } = await supabase.from('items').update({ status: 'inbox' }).eq('id', entry.item.id).eq('status', 'candidate')
   return toResult(null, error)
 }
 

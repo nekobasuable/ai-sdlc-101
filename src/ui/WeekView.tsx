@@ -10,7 +10,8 @@ const RESULT_LABEL: Record<string, string> = { done: 'やった', partial: '一�
 // 週の画面(R8、R10、R11、R13a)。1週間は「今」の積み重ねとして見せる(P7)
 export default function WeekView({ settings, now, onChanged }: { settings: AppSettings; now: Date; onChanged: () => void }) {
   const [offset, setOffset] = useState(0) // 0 = 今週、1 = 来週
-  const [entries, setEntries] = useState<WeekEntry[]>([])
+  // どの週の内容かを一緒に持ち、週を切り替えた直後に前の週の内容を重ねて見せない(PR #2 のレビューの指摘)
+  const [loaded, setLoaded] = useState<{ weekStart: string; entries: WeekEntry[] } | null>(null)
   const [candidates, setCandidates] = useState<Item[]>([])
   const [picking, setPicking] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -25,7 +26,7 @@ export default function WeekView({ settings, now, onChanged }: { settings: AppSe
       if (!active) return
       if (!week.ok) return setMessage(week.message)
       if (!cands.ok) return setMessage(cands.message)
-      setEntries(week.data)
+      setLoaded({ weekStart, entries: week.data })
       setCandidates(cands.data)
     })
     return () => {
@@ -46,6 +47,7 @@ export default function WeekView({ settings, now, onChanged }: { settings: AppSe
     reload()
   }
 
+  const entries = loaded?.weekStart === weekStart ? loaded.entries : []
   const filled = new Set(entries.map((e) => cellKey(e.day, e.blockId)))
   const lowSlack = slackRatio(grid, filled) < LOW_SLACK
 
@@ -65,7 +67,8 @@ export default function WeekView({ settings, now, onChanged }: { settings: AppSe
       {lowSlack && <p className="text-sm text-stone-500">{offset === 0 ? '今週' : '来週'}は余白が少なめです。</p>}
       {message && <p className="text-sm text-stone-500">{message}</p>}
 
-      {grid.map((day) => (
+      {loaded?.weekStart !== weekStart && <p className="text-sm text-stone-400">読み込んでいます…</p>}
+      {loaded?.weekStart === weekStart && grid.map((day) => (
         <div key={day[0].date} className="space-y-1">
           <h2 className="text-sm text-stone-500">
             {Number(day[0].date.slice(5, 7))}/{Number(day[0].date.slice(8))}({WEEKDAYS[day[0].day]})
@@ -75,7 +78,9 @@ export default function WeekView({ settings, now, onChanged }: { settings: AppSe
               key={cell.block.id}
               cell={cell}
               entries={entries.filter((e) => e.day === cell.day && e.blockId === cell.block.id)}
-              candidates={candidates}
+              candidates={candidates.filter(
+                (c) => !entries.some((e) => e.day === cell.day && e.blockId === cell.block.id && e.item.id === c.id),
+              )}
               picking={picking === cellKey(cell.day, cell.block.id)}
               onPick={() => setPicking(picking === cellKey(cell.day, cell.block.id) ? null : cellKey(cell.day, cell.block.id))}
               onPlace={(item) => run(placeNow(item.id, { weekStart, day: cell.day, blockId: cell.block.id }))}
