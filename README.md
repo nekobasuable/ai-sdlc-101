@@ -7,9 +7,9 @@ https://claude.com/ja/resources/articles/the-ai-native-sdlc-playbook
 
 | Stage | 成果物 | 状態 |
 |---|---|---|
-| 1 Plan | intent/*.md | 完了 |
-| 2 Design | spec/*.md | 完了 |
-| 3 Build | CLAUDE.md, hooks, plan/*.md | 進行中(スキルとサブエージェントは未経験) |
-| 4 Test | npm run lint / test / test:db, evals | 進行中(evals は未経験) |
-| 5 Deploy | REVIEW.md, CI, 自動配信 | 進行中(plan/006) |
+| 1 Plan | intent/*.md | 進行中 |
+| 2 Design | spec.md | 未着手 |
+| 3 Build | CLAUDE.md, .claude/skills, hooks, plan.md | 未着手 |
+| 4 Test | make test, evals | 未着手 |
+| 5 Deploy | REVIEW.md, 承認ゲートのフック, CI | 未着手 |
 | 6 Maintain | bands.yaml, スキャン | 未着手 |
