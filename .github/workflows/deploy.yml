@@ -69,7 +69,7 @@ jobs:
       - name: Deploy functions
         run: |
           if ls supabase/functions/*/index.ts >/dev/null 2>&1; then
-            supabase functions deploy
+            supabase functions deploy --yes
           else
             echo "サーバー側の関数はまだありません"
           fi
