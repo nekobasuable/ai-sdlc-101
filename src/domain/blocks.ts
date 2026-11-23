@@ -1,3 +1,5 @@
+import { zonedParts } from './time'
+
 /** 1日を区切る2〜3時間のブロック(spec R8)。時刻は「その日の0時からの分」で表す。 */
 export type Block = {
   id: string
@@ -22,14 +24,8 @@ export const DEFAULT_BLOCKS: readonly Block[] = [
 
 /** 指定したタイムゾーンでの、その日の0時からの分を返す */
 export function minuteOfDay(now: Date, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(now)
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value)
-  return get('hour') * 60 + get('minute')
+  const { hour, minute } = zonedParts(now, timeZone)
+  return hour * 60 + minute
 }
 
 /** 今のブロックを返す。どのブロックにも属さない時間帯は null */
