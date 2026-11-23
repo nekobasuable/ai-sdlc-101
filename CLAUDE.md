@@ -6,6 +6,7 @@
 ## 進め方
 - このリポジトリは AI ネイティブ SDLC で進める: intent → spec → plan → コード。
 - 承認済みの `plan/*.md` がない実装は始めない。実装が plan から外れたら、同じコミットで plan を更新する。
+- 作業ブランチで作業し、main には PR でだけ入れる。Claude は main に直接 push しない。PR は CI と AI レビュー(`REVIEW.md` の観点)を通り、人間がマージする(plan/006)。本番への配信は main への push でだけ動く。
 - 判断に迷ったら spec の設計原則 P1〜P7 に照らす。特に、余白(P2)と今ここ(P7)を損なう提案をしない。
 
 ## Commands

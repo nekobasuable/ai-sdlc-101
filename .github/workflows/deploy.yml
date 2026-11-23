@@ -1,8 +1,9 @@
 name: Deploy
 
+# 本番への配信は main からだけ(plan/006)。作業ブランチの変更は PR でレビューしてから main に入れる
 on:
   push:
-    branches: [claude/ai-native-sdlc-playbook-3yqzzp, main]
+    branches: [main]
   workflow_dispatch:
     inputs:
       repair_initial_migrations:
