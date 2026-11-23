@@ -54,10 +54,10 @@ export default function WeekView({ settings, now, onChanged }: { settings: AppSe
         <div className="flex items-baseline justify-between">
           <h1 className="m-0 font-mincho text-[26px] font-normal tracking-[0.06em]">{offset === 0 ? '今週' : '来週'}</h1>
           <div className="flex gap-5 font-hand text-[15px]">
-            <button type="button" onClick={() => setOffset(0)} className={`min-h-11 ${offset === 0 ? 'text-ink' : 'text-ink-4'}`}>
+            <button type="button" onClick={() => setOffset(0)} className={`min-h-11 ${offset === 0 ? 'text-ink' : 'text-ink-3'}`}>
               今週
             </button>
-            <button type="button" onClick={() => setOffset(1)} className={`min-h-11 ${offset === 1 ? 'text-ink' : 'text-ink-4'}`}>
+            <button type="button" onClick={() => setOffset(1)} className={`min-h-11 ${offset === 1 ? 'text-ink' : 'text-ink-3'}`}>
               来週
             </button>
           </div>
@@ -81,7 +81,8 @@ export default function WeekView({ settings, now, onChanged }: { settings: AppSe
               entries={entries.filter((e) => e.day === day[0].day)}
               candidates={candidates}
               drawing={drawing?.day === day[0].day ? drawing : null}
-              onDraw={(blockId) => setDrawing(drawing?.day === day[0].day && drawing.blockId === blockId ? null : { day: day[0].day, blockId })}
+              onDraw={(blockId) => setDrawing({ day: day[0].day, blockId })}
+              onClose={() => setDrawing(null)}
               onPlace={(item, blockId) => run(placeNow(item.id, { weekStart, day: day[0].day, blockId }))}
               onUnplace={(entry) => run(unplace(entry))}
             />
@@ -105,6 +106,7 @@ function Day({
   candidates,
   drawing,
   onDraw,
+  onClose,
   onPlace,
   onUnplace,
 }: {
@@ -113,6 +115,7 @@ function Day({
   candidates: Item[]
   drawing: { blockId: string | null } | null
   onDraw: (blockId: string | null) => void
+  onClose: () => void
   onPlace: (item: Item, blockId: string) => void
   onUnplace: (entry: WeekEntry) => void
 }) {
@@ -124,12 +127,12 @@ function Day({
 
   return (
     <div className="flex gap-5">
-      <div className={`w-11 shrink-0 font-mincho ${isPast ? 'text-ink-4' : isToday ? 'text-ink' : 'text-ink-2'}`}>
+      <div className={`w-11 shrink-0 font-mincho ${isPast ? 'text-ink-3' : isToday ? 'text-ink' : 'text-ink-2'}`}>
         <div className="text-xl">{Number(first.date.slice(8))}</div>
         <div className="text-xs">{WEEKDAYS[first.day]}</div>
       </div>
       <div className="flex flex-1 flex-col gap-1.5 pt-1 text-[15px] leading-relaxed">
-        {entries.length === 0 && <span className="font-mincho text-sm tracking-[0.2em] text-ink-4">余白の一日</span>}
+        {entries.length === 0 && <span className="font-mincho text-sm tracking-[0.2em] text-ink-3">余白の一日</span>}
         {cells.map((cell) =>
           entries
             .filter((e) => e.blockId === cell.block.id)
@@ -140,10 +143,10 @@ function Day({
               >
                 <span>
                   {cell.block.label}　{e.item.body}
-                  {e.result && <span className="text-ink-4"> · {RESULT_LABEL[e.result]}</span>}
+                  {e.result && <span className="text-ink-3"> · {RESULT_LABEL[e.result]}</span>}
                 </span>
                 {cell.time !== 'past' && !e.result && (
-                  <button type="button" onClick={() => onUnplace(e)} className="min-h-11 shrink-0 font-hand text-sm text-ink-4">
+                  <button type="button" onClick={() => onUnplace(e)} className="min-h-11 shrink-0 font-hand text-sm text-ink-3">
                     外す
                   </button>
                 )}
@@ -151,7 +154,7 @@ function Day({
             )),
         )}
         {openBlocks.length > 0 && (
-          <button type="button" onClick={() => onDraw(null)} className="min-h-11 self-start font-hand text-sm text-ink-3">
+          <button type="button" onClick={() => (drawing ? onClose() : onDraw(null))} className="min-h-11 self-start font-hand text-sm text-ink-3">
             {drawing ? '閉じる' : '描く'}
           </button>
         )}

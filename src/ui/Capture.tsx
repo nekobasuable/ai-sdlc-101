@@ -29,7 +29,7 @@ export default function Capture({ onAdded, onError, className = '' }: { onAdded:
         onChange={(e) => setBody(e.target.value)}
         placeholder="ふと浮かんだことを"
         enterKeyHint="send"
-        className="min-h-11 min-w-0 flex-1 bg-transparent py-3 font-hand text-base text-ink outline-none placeholder:text-ink-4"
+        className="min-h-11 min-w-0 flex-1 bg-transparent py-3 font-hand text-base text-ink outline-none placeholder:text-ink-3"
       />
       <button type="submit" disabled={saving} aria-label="入れる" className="flex size-11 items-center justify-center text-ink-3 disabled:opacity-40">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" aria-hidden="true">

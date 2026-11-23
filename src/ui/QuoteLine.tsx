@@ -6,7 +6,7 @@ export default function QuoteLine({ scene, date }: { scene: Scene; date: string 
   return (
     <figure className="m-0 font-mincho text-[13px] leading-loose text-ink-3">
       <blockquote className="m-0 inline">{q.text}</blockquote>
-      <figcaption className="inline text-ink-4">
+      <figcaption className="inline text-ink-3">
         {'　'}
         {q.who}『{q.source}』
       </figcaption>

@@ -57,11 +57,11 @@ export default function NowView({
                 <button type="button" onClick={() => onResult(entry, 'partial')} className={`min-h-11 ${entry.result === 'partial' ? 'text-ink underline decoration-rule underline-offset-[6px]' : 'text-ink-3'}`}>
                   途中まで
                 </button>
-                <button type="button" onClick={() => onResult(entry, 'not_done')} className={`min-h-11 ${entry.result === 'not_done' ? 'text-ink underline decoration-rule underline-offset-[6px]' : 'text-ink-4'}`}>
+                <button type="button" onClick={() => onResult(entry, 'not_done')} className={`min-h-11 ${entry.result === 'not_done' ? 'text-ink underline decoration-rule underline-offset-[6px]' : 'text-ink-3'}`}>
                   今日は手放す
                 </button>
                 {!entry.result && (
-                  <button type="button" onClick={() => onUnplace(entry)} className="min-h-11 text-ink-4">
+                  <button type="button" onClick={() => onUnplace(entry)} className="min-h-11 text-ink-3">
                     ここから外す
                   </button>
                 )}

@@ -92,6 +92,13 @@ function Home() {
 
   if (!settings) return <p className="p-6 text-ink-3">{message ?? '開いています…'}</p>
 
+  // 放り込む欄は、どのタブにも置く(spec R1。PR #3 のレビューの指摘)。スマホは画面の下に固定、PC は流れの中に置く
+  const captureBar = (desktop: string) => (
+    <div className={`fixed inset-x-0 bottom-0 bg-paper px-6 pb-[max(1rem,env(safe-area-inset-bottom))] ${desktop}`}>
+      <Capture onAdded={reload} onError={setMessage} />
+    </div>
+  )
+
   // 今日のこれから: 今のブロックより後の予定を文章に(スキル)
   const bodies = new Map<string, string[]>()
   for (const e of today) if (e.day === dayIndex && e.blockId !== block?.id) bodies.set(e.blockId, [...(bodies.get(e.blockId) ?? []), e.item.body])
@@ -106,10 +113,10 @@ function Home() {
           {p.month}月{p.day}日({WEEKDAYS[p.weekday]})
         </span>
         <nav className="flex gap-5 text-sm tracking-[0.08em]">
-          <button type="button" onClick={() => setTab('now')} className={`min-h-11 ${tab === 'now' ? 'text-ink' : 'text-ink-4'}`}>
+          <button type="button" onClick={() => setTab('now')} className={`min-h-11 ${tab === 'now' ? 'text-ink' : 'text-ink-3'}`}>
             今
           </button>
-          <button type="button" onClick={() => setTab('week')} className={`min-h-11 ${tab === 'week' ? 'text-ink' : 'text-ink-4'}`}>
+          <button type="button" onClick={() => setTab('week')} className={`min-h-11 ${tab === 'week' ? 'text-ink' : 'text-ink-3'}`}>
             週
           </button>
         </nav>
@@ -118,6 +125,7 @@ function Home() {
       {tab === 'week' ? (
         <div className="mx-auto mt-10 max-w-2xl">
           <WeekView settings={settings} now={now} onChanged={reload} />
+          {captureBar('lg:static lg:mt-12 lg:px-0 lg:pb-0')}
         </div>
       ) : (
         <div className="mx-auto mt-20 grid max-w-6xl gap-16 lg:mt-28 lg:grid-cols-[7fr_4fr] lg:gap-24">
@@ -158,9 +166,7 @@ function Home() {
               {owl.spot === 'corner' && <Owl pose={owl.pose} className="absolute -top-16 right-0" />}
             </div>
 
-            <div className="fixed inset-x-0 bottom-0 bg-paper px-6 pb-[max(1rem,env(safe-area-inset-bottom))] lg:static lg:px-0 lg:pb-0">
-              <Capture onAdded={reload} onError={setMessage} />
-            </div>
+            {captureBar('lg:static lg:px-0 lg:pb-0')}
           </aside>
         </div>
       )}
@@ -168,7 +174,7 @@ function Home() {
       <footer className="mx-auto mt-24 flex max-w-6xl flex-col gap-6">
         <SyncSettings onSynced={reload} />
         <SpikePanel timeZone={tz} />
-        <button type="button" onClick={signOut} className="min-h-11 self-start text-sm text-ink-4">
+        <button type="button" onClick={signOut} className="min-h-11 self-start text-sm text-ink-3">
           ログアウト
         </button>
       </footer>
