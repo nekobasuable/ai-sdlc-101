@@ -44,23 +44,33 @@ export type SpikeRecord = {
 
 const SPIKE_KEY = 'spike-002'
 
+/**
+ * ログイン直後に Google から受け取った鍵を扱う。モジュールの読み込み時に1回だけ登録する。
+ * 画面の部品の中で登録すると、部品が表示される前に届いたログインの知らせを取りこぼす(plan/005 で起きた)。
+ */
+let sentRefreshToken: string | null = null
+supabase?.auth.onAuthStateChange((_event, session) => {
+  // provider token は、Google から戻ってきた直後のセッションにだけ含まれる
+  if (!session?.provider_token) return
+  const record: SpikeRecord = {
+    signedInAt: new Date().toISOString(),
+    providerToken: session.provider_token,
+    gotRefreshToken: Boolean(session.provider_refresh_token),
+  }
+  localStorage.setItem(SPIKE_KEY, JSON.stringify(record))
+  // 長期の鍵はブラウザに残さず、サーバーに送って暗号化して保管する(plan/005 段階 B、spec C12)
+  const refreshToken = session.provider_refresh_token
+  if (refreshToken && refreshToken !== sentRefreshToken) {
+    sentRefreshToken = refreshToken
+    // onAuthStateChange の中で Supabase を待つと固まることがあるため、次の処理の順番に回す
+    setTimeout(() => void supabase?.functions.invoke('google-token', { body: { refresh_token: refreshToken } }), 0)
+  }
+})
+
+/** 診断表示のための、ログイン状態の変化の通知 */
 export function watchSignIn(onChange: (record: SpikeRecord | null) => void): () => void {
   if (!supabase) return () => {}
-  const { data } = supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_IN' && session?.provider_token) {
-      const record: SpikeRecord = {
-        signedInAt: new Date().toISOString(),
-        providerToken: session.provider_token,
-        gotRefreshToken: Boolean(session.provider_refresh_token),
-      }
-      localStorage.setItem(SPIKE_KEY, JSON.stringify(record))
-      // 長期の鍵はブラウザに残さず、サーバーに送って暗号化して保管する(plan/005 段階 B、spec C12)
-      if (session.provider_refresh_token) {
-        void supabase?.functions.invoke('google-token', { body: { refresh_token: session.provider_refresh_token } })
-      }
-    }
-    onChange(session ? readSpikeRecord() : null)
-  })
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => onChange(session ? readSpikeRecord() : null))
   return () => data.subscription.unsubscribe()
 }
 
