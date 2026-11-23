@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchEvents } from '../data/calendar'
-import { listCandidates, listWeek, placeNow, unplace, type Item, type WeekEntry } from '../data/items'
+import { listCandidates, listDue, listWeek, placeNow, unplace, type Item, type WeekEntry } from '../data/items'
 import type { AppSettings } from '../data/settings'
 import { placeEvents, type PlacedEvent } from '../domain/calendar-blocks'
 import { addDays, weekStartOf } from '../domain/slot'
@@ -18,6 +18,7 @@ export default function WeekView({ settings, now, version: outer, onChanged }: {
   const [loaded, setLoaded] = useState<{ weekStart: string; entries: WeekEntry[] } | null>(null)
   const [candidates, setCandidates] = useState<Item[]>([])
   const [events, setEvents] = useState<{ weekStart: string; placed: PlacedEvent[] } | null>(null)
+  const [due, setDue] = useState<{ weekStart: string; items: Item[] } | null>(null)
   const [drawing, setDrawing] = useState<{ day: number; blockId: string | null } | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [version, setVersion] = useState(0)
@@ -33,6 +34,10 @@ export default function WeekView({ settings, now, version: outer, onChanged }: {
       if (!cands.ok) return setMessage(cands.message)
       setLoaded({ weekStart, entries: week.data })
       setCandidates(cands.data)
+    })
+    // 締め切りのあるもの(spec R39)
+    void listDue({ from: weekStart, to: addDays(weekStart, 6) }).then((res) => {
+      if (active && res.ok) setDue({ weekStart, items: res.data })
     })
     // カレンダーの予定(spec R9)。読めなくても週の画面は使える
     const [y, m, d] = weekStart.split('-').map(Number)
@@ -56,6 +61,7 @@ export default function WeekView({ settings, now, version: outer, onChanged }: {
 
   const entries = loaded?.weekStart === weekStart ? loaded.entries : []
   const weekEvents = events?.weekStart === weekStart ? events.placed : []
+  const weekDue = due?.weekStart === weekStart ? due.items : []
   const filled = new Set(entries.map((e) => cellKey(e.day, e.blockId)))
   const slack = slackRatio(grid, filled)
 
@@ -91,6 +97,7 @@ export default function WeekView({ settings, now, version: outer, onChanged }: {
               cells={day}
               entries={entries.filter((e) => e.day === day[0].day)}
               events={weekEvents.filter((e) => e.day === day[0].day)}
+              due={weekDue.filter((i) => i.dueDate === day[0].date)}
               candidates={candidates}
               drawing={drawing?.day === day[0].day ? drawing : null}
               onDraw={(blockId) => setDrawing({ day: day[0].day, blockId })}
@@ -116,6 +123,7 @@ function Day({
   cells,
   entries,
   events,
+  due,
   candidates,
   drawing,
   onDraw,
@@ -126,6 +134,7 @@ function Day({
   cells: Cell[]
   entries: WeekEntry[]
   events: PlacedEvent[]
+  due: Item[]
   candidates: Item[]
   drawing: { blockId: string | null } | null
   onDraw: (blockId: string | null) => void
@@ -144,6 +153,19 @@ function Day({
       <div className={`w-11 shrink-0 font-mincho ${isPast ? 'text-ink-3' : isToday ? 'text-ink' : 'text-ink-2'}`}>
         <div className="text-xl">{Number(first.date.slice(8))}</div>
         <div className="text-xs">{WEEKDAYS[first.day]}</div>
+        {openBlocks.length > 0 && (
+          <button
+            type="button"
+            aria-label={drawing ? '閉じる' : `${Number(first.date.slice(8))}日に予定を置く`}
+            aria-expanded={Boolean(drawing)}
+            onClick={() => (drawing ? onClose() : onDraw(null))}
+            className="-ml-3 flex size-11 items-center justify-center text-ink-3"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
+              {drawing ? <path d="M6 12h12" /> : <path d="M12 5v14M5 12h14" />}
+            </svg>
+          </button>
+        )}
       </div>
       <div className="flex flex-1 flex-col gap-1.5 pt-1 text-[15px] leading-relaxed">
         {events.filter((e) => e.time === null).map((e) => (
@@ -151,7 +173,14 @@ function Day({
             一日、{e.title}
           </span>
         ))}
-        {entries.length === 0 && events.length === 0 && <span className="font-mincho text-sm tracking-[0.2em] text-ink-3">余白の一日</span>}
+        {due.map((i) => (
+          <span key={`due-${i.id}`} className="text-sm text-ink-3">
+            〆　{i.body}
+          </span>
+        ))}
+        {entries.length === 0 && events.length === 0 && due.length === 0 && (
+          <span className="font-mincho text-sm tracking-[0.2em] text-ink-3">余白の一日</span>
+        )}
         {events
           .filter((e) => e.time !== null)
           .map((e) => (
@@ -178,11 +207,6 @@ function Day({
                 )}
               </div>
             )),
-        )}
-        {openBlocks.length > 0 && (
-          <button type="button" onClick={() => (drawing ? onClose() : onDraw(null))} className="min-h-11 self-start font-hand text-sm text-ink-3">
-            {drawing ? '閉じる' : '描く'}
-          </button>
         )}
         {drawing && (
           <div className="flex flex-col gap-2 border-l border-rule pl-4">

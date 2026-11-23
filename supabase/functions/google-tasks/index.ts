@@ -1,5 +1,6 @@
-// plan/005 段階 C: Google ToDo との同期。
-// 操作は2つ: { action: 'lists' } でリストの一覧、{ action: 'sync' } で同期の実行。
+// Google ToDo との同期(plan/005、plan/009)。
+// 操作は2つ: { action: 'sync' } で同期の実行(すべてのリストが対象。画面から操作なしで呼ばれる)、
+// { action: 'lists' } でリストの一覧(今は画面から使っていない)。
 // 判断は _shared/sync.ts の planSync に任せ、ここは通信と適用だけを行う。
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { googleAccessToken, ReconnectNeeded, signedInUser } from '../_shared/google-auth.ts'

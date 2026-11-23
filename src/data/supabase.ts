@@ -37,6 +37,13 @@ export async function signOut(): Promise<void> {
  * モジュールの読み込み時に1回だけ登録する。画面の部品の中で登録すると、部品が表示される前に届いた知らせを取りこぼす。
  * 長期の鍵はブラウザに残さない。カレンダー用の短期の鍵も控えない(plan/009 でサーバー側で読むようにした)。
  */
+// plan/002 の試作でブラウザに控えていたカレンダー用の鍵が残っていれば、開いたときに消す(PR #4 のレビューの Nit)
+try {
+  localStorage.removeItem('spike-002')
+} catch {
+  // 保存領域が使えない環境では、何もしない
+}
+
 let sentRefreshToken: string | null = null
 supabase?.auth.onAuthStateChange((_event, session) => {
   const refreshToken = session?.provider_refresh_token

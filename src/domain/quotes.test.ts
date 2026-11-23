@@ -9,7 +9,8 @@ describe('pickQuote', () => {
 
   it('同じ日なら同じ言葉、日が変われば変わりうる', () => {
     expect(pickQuote('day', '2026-11-24')).toBe(pickQuote('day', '2026-11-24'))
-    expect(pickQuote('day', '2026-11-24')).not.toBe(pickQuote('day', '2026-11-25'))
+    const dates = Array.from({ length: 10 }, (_, i) => `2026-11-${String(i + 10)}`)
+    expect(new Set(dates.map((d) => pickQuote('day', d))).size).toBeGreaterThan(1)
   })
 
   it('すべての言葉に人物と出典がある(C3)', () => {

@@ -16,10 +16,14 @@ export function useAutoSync(onSynced: () => void): string | null {
     const run = async () => {
       if (running || document.hidden) return
       running = true
-      const res = await syncNow()
-      running = false
-      setNotice(!res.ok && res.message === RECONNECT ? RECONNECT : null)
-      onSynced()
+      try {
+        const res = await syncNow()
+        setNotice(!res.ok && res.message === RECONNECT ? RECONNECT : null)
+      } finally {
+        // 想定外の例外が起きても、次の同期が止まらないようにする(PR #4 のレビューの Nit)
+        running = false
+        onSynced()
+      }
     }
     void run()
     const onVisible = () => {
