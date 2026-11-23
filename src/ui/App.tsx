@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { completeItem, listDue, listInbox, listNow, listWeek, placeNow, setResult, unplace, type Item, type NowEntry, type WeekEntry } from '../data/items'
+import { classifyItem, completeItem, listDue, listInbox, listNow, listWeek, placeNow, setResult, unplace, type Item, type NowEntry, type WeekEntry } from '../data/items'
 import { ensureSettings, type AppSettings } from '../data/settings'
 import { signOut, supabase } from '../data/supabase'
 import { fetchEvents } from '../data/calendar'
@@ -93,7 +93,9 @@ function Home() {
     return () => {
       active = false
     }
-  }, [settings, slotKey, version])
+  }, [settings, slotKey, version, date])
+
+  const classify = (item: Item, meta: { area: string | null; quadrant: number | null }) => run(classifyItem(item.id, meta))
 
   async function run(action: Promise<{ ok: boolean; message?: string }>) {
     const res = await action
@@ -154,8 +156,9 @@ function Home() {
               events={nowEvents}
               onResult={(entry, result) => run(setResult(entry, result))}
               onUnplace={(entry) => run(unplace(entry))}
+              onClassify={classify}
             />
-            <TodayDue {...dueByToday(due, date)} onComplete={(item) => run(completeItem(item.id))} />
+            <TodayDue {...dueByToday(due, date)} onComplete={(item) => run(completeItem(item.id))} onClassify={classify} />
             {message && <p className="m-0 text-sm text-ink-3">{message}</p>}
             <div className="relative hidden lg:block">
               <QuoteLine scene={scene} date={date} />
@@ -179,7 +182,7 @@ function Home() {
               {owl.spot === 'aside' && <Owl pose={owl.pose} className="absolute -top-14 right-0" />}
             </section>
 
-            <InboxList items={inbox} canPlace={slot !== null} onPlace={(item) => slot && run(placeNow(item.id, slot))} />
+            <InboxList items={inbox} canPlace={slot !== null} onPlace={(item) => slot && run(placeNow(item.id, slot))} onClassify={classify} />
 
             <div className="relative lg:hidden">
               <QuoteLine scene={scene} date={date} />

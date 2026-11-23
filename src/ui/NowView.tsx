@@ -1,7 +1,9 @@
 import type { NowEntry, PlacementResult } from '../data/items'
 import type { Block } from '../domain/blocks'
 import type { OwlPose } from '../domain/owl'
+import { useState } from 'react'
 import HandCircle from './HandCircle'
+import ItemMeta, { type Classify } from './ItemMeta'
 import Owl from './Owl'
 
 // 今の画面(R13、R14、R14a)。今やることだけを大きく(P7)
@@ -12,6 +14,7 @@ export default function NowView({
   events,
   onResult,
   onUnplace,
+  onClassify,
 }: {
   block: Block | null
   entries: NowEntry[]
@@ -20,7 +23,9 @@ export default function NowView({
   events: string[]
   onResult: (entry: NowEntry, result: PlacementResult) => void
   onUnplace: (entry: NowEntry) => void
+  onClassify: Classify
 }) {
+  const [editing, setEditing] = useState<string | null>(null)
   if (!block) {
     return (
       <section className="relative">
@@ -54,9 +59,21 @@ export default function NowView({
                 <h2
                   className={`m-0 font-mincho leading-relaxed font-normal tracking-wide ${large ? 'text-[30px] lg:text-[44px]' : 'text-2xl lg:text-3xl'} ${entry.result === 'done' ? 'text-ink-3' : ''}`}
                 >
-                  {entry.item.body}
+                  <button
+                    type="button"
+                    aria-expanded={editing === entry.item.id}
+                    onClick={() => setEditing(editing === entry.item.id ? null : entry.item.id)}
+                    className="min-h-11 text-left"
+                  >
+                    {entry.item.body}
+                  </button>
                 </h2>
               </div>
+              {editing === entry.item.id && (
+                <div className="ml-12">
+                  <ItemMeta item={entry.item} onClassify={onClassify} />
+                </div>
+              )}
               <div className="mt-3 ml-12 flex flex-wrap gap-x-5 font-hand text-[15px]">
                 <button type="button" onClick={() => onResult(entry, 'partial')} className={`min-h-11 ${entry.result === 'partial' ? 'text-ink underline decoration-rule underline-offset-[6px]' : 'text-ink-3'}`}>
                   途中まで

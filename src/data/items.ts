@@ -4,7 +4,7 @@ import { failure, toResult, type DataResult } from './result'
 import { supabase } from './supabase'
 
 type Tables = Database['public']['Tables']
-export type Item = Pick<Tables['items']['Row'], 'id' | 'body' | 'status'> & { dueDate: string | null }
+export type Item = Pick<Tables['items']['Row'], 'id' | 'body' | 'status' | 'area' | 'quadrant'> & { dueDate: string | null }
 export type PlacementResult = NonNullable<Tables['placements']['Row']['result']>
 export type NowEntry = { placementId: string; result: PlacementResult | null; item: Item }
 
@@ -21,7 +21,7 @@ export async function listInbox(): Promise<DataResult<Item[]>> {
   if (!supabase) return NOT_CONFIGURED
   const { data, error } = await supabase
     .from('items')
-    .select('id, body, status, due_date')
+    .select('id, body, status, area, quadrant, due_date')
     .eq('status', 'inbox')
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
@@ -29,15 +29,15 @@ export async function listInbox(): Promise<DataResult<Item[]>> {
   return { ok: true, data: data.map(toItem) }
 }
 
-type ItemRow = { id: string; body: string; status: string; due_date: string | null }
-const toItem = (r: ItemRow): Item => ({ id: r.id, body: r.body, status: r.status, dueDate: r.due_date })
+type ItemRow = { id: string; body: string; status: string; area: string | null; quadrant: number | null; due_date: string | null }
+const toItem = (r: ItemRow): Item => ({ id: r.id, body: r.body, status: r.status, area: r.area, quadrant: r.quadrant, dueDate: r.due_date })
 
 /** 締め切りのある未完了の項目(spec R38、R39)。to まで(含む)、from があればそこから(含む) */
 export async function listDue(range: { from?: string; to: string }): Promise<DataResult<Item[]>> {
   if (!supabase) return NOT_CONFIGURED
   let query = supabase
     .from('items')
-    .select('id, body, status, due_date')
+    .select('id, body, status, area, quadrant, due_date')
     .in('status', ['inbox', 'candidate'])
     .is('deleted_at', null)
     .not('due_date', 'is', null)
@@ -60,7 +60,7 @@ export async function listNow(slot: Slot): Promise<DataResult<NowEntry[]>> {
   if (!supabase) return NOT_CONFIGURED
   const { data, error } = await supabase
     .from('placements')
-    .select('id, result, item:items(id, body, status, due_date, deleted_at)')
+    .select('id, result, item:items(id, body, status, area, quadrant, due_date, deleted_at)')
     .eq('week_start', slot.weekStart)
     .eq('day', slot.day)
     .eq('block_id', slot.blockId)
@@ -71,7 +71,7 @@ export async function listNow(slot: Slot): Promise<DataResult<NowEntry[]>> {
     // 削除済み(Google ToDo で消された項目など)は出さない
     data: data.flatMap((p) =>
       p.item && !p.item.deleted_at
-        ? [{ placementId: p.id, result: p.result as PlacementResult | null, item: { id: p.item.id, body: p.item.body, status: p.item.status, dueDate: p.item.due_date } }]
+        ? [{ placementId: p.id, result: p.result as PlacementResult | null, item: toItem(p.item) }]
         : [],
     ),
   }
@@ -119,7 +119,7 @@ export async function listWeek(weekStart: string): Promise<DataResult<WeekEntry[
   if (!supabase) return NOT_CONFIGURED
   const { data, error } = await supabase
     .from('placements')
-    .select('id, day, block_id, result, item:items(id, body, status, due_date, deleted_at)')
+    .select('id, day, block_id, result, item:items(id, body, status, area, quadrant, due_date, deleted_at)')
     .eq('week_start', weekStart)
     .order('created_at')
   if (error) return failure(error)
@@ -127,7 +127,7 @@ export async function listWeek(weekStart: string): Promise<DataResult<WeekEntry[
     ok: true,
     data: data.flatMap((p) =>
       p.item && !p.item.deleted_at
-        ? [{ placementId: p.id, day: p.day, blockId: p.block_id, result: p.result as PlacementResult | null, item: { id: p.item.id, body: p.item.body, status: p.item.status, dueDate: p.item.due_date } }]
+        ? [{ placementId: p.id, day: p.day, blockId: p.block_id, result: p.result as PlacementResult | null, item: toItem(p.item) }]
         : [],
     ),
   }
@@ -138,10 +138,17 @@ export async function listCandidates(): Promise<DataResult<Item[]>> {
   if (!supabase) return NOT_CONFIGURED
   const { data, error } = await supabase
     .from('items')
-    .select('id, body, status, due_date')
+    .select('id, body, status, area, quadrant, due_date')
     .in('status', ['inbox', 'candidate'])
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
   if (error) return failure(error)
   return { ok: true, data: data.map(toItem) }
+}
+
+/** 仕分け: 項目の領域と象限を書き換える(R4)。Google ToDo には送らない */
+export async function classifyItem(itemId: string, meta: { area: string | null; quadrant: number | null }): Promise<DataResult<null>> {
+  if (!supabase) return NOT_CONFIGURED
+  const { error } = await supabase.from('items').update(meta).eq('id', itemId)
+  return toResult(null, error)
 }
