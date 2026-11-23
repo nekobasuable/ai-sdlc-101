@@ -14,7 +14,9 @@
 - `npm run lint`: lint(oxlint)と型チェック。警告ゼロにする
 - `npm test`: 単体テスト(Vitest)。`src/domain` が対象
 - `npx supabase start -x studio,imgproxy,vector,logflare,edge-runtime,supavisor,realtime,storage-api,mailpit,postgres-meta`: 開発用の Supabase を最小構成で起動(初回は約2.5分、イメージ約4GB)。止めるときは `npx supabase stop`
-  - 作業環境では Docker デーモンが止まっていることがある。`docker info` が失敗したら、先に `dockerd` をバックグラウンドで起動する。
+  - 作業環境では Docker デーモンが止まっていることがある。`docker info` が失敗したら、先に `dockerd` をバックグラウンドで起動する。起動が「process with PID ... is still running」で失敗したら、古い `/var/run/docker.pid` を消してから起動し直す。
+- `npm run test:db`: データベースのテスト(pgTAP、`supabase/tests/`)。開発用の Supabase の起動が必要。マイグレーションを変えたら `npx supabase db reset` で適用してから実行する
+- `npm run gen:types`: データベースの型を `src/data/database.types.ts` に生成する。マイグレーションを変えたら実行する(手で編集しない)
 - `.claude/hooks/block-secrets.sh`: 秘密の情報を止めるフック。鍵の形の文字列を含む書き込みと `git commit` を止める。止められたら鍵を `.env.local` に移す。
 
 ## 構成

@@ -1,7 +1,7 @@
 # plan/003-data-foundation: データの土台(テーブル定義、本人だけが読み書きできる制限、そのテスト)
 
 - 元: [spec/life-dashboard.md](../spec/life-dashboard.md)(受理済み、変更 1 を含む)の 4.3 データモデル、N6、C12
-- 状態: 承認済み(承認者: リポジトリオーナー、2026-11-23)
+- 状態: 実装済み(承認者: リポジトリオーナー、2026-11-23)
 - 承認後、この内容を `plan/003-data-foundation.md` としてコミットしてから実装に入る。
 
 ## Context
@@ -67,3 +67,14 @@ plan/002 で、Google の長期の鍵をサーバー側に保管する方式(A �
 - 同じ Google ToDo のタスク ID は、同じユーザーの中で二重に登録できない。
 
 あわせて `npm run lint`、`npm test`、`npm run build` が通る。
+
+## 実装の結果
+実装日: 2026-11-23
+
+### 証明の結果
+- `npm run test:db`: 11件すべて合格(RLS が全テーブルで有効、他人の行を読めない、更新も削除もできない、他人の名義で作れない、anon は読めない、google_credentials は本人でも読み書きできない、Google ToDo のタスクの重複を防ぐ)。
+- `npm run lint`: 警告ゼロ。`npm test`: 9件合格。`npm run build`: 成功。
+
+### 計画からのずれ
+- テストを1件追加した: 「A は B の名義で項目を作れない」。読み取りだけでなく、書き込み時の名義の検査(RLS の with check)も確かめるため。
+- 作業環境の再起動のあと、Docker が古い PID ファイルのせいで起動しなかった。古い `/var/run/docker.pid` を消して解決し、手順を CLAUDE.md に追記した。

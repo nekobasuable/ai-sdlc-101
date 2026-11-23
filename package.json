@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint && tsc -b --noEmit",
     "test": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:db": "supabase test db",
+    "gen:types": "supabase gen types typescript --local > src/data/database.types.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",
