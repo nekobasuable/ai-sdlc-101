@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { listInbox, listNow, listWeek, placeNow, setResult, unplace, type Item, type NowEntry, type WeekEntry } from '../data/items'
+import { completeItem, listDue, listInbox, listNow, listWeek, placeNow, setResult, unplace, type Item, type NowEntry, type WeekEntry } from '../data/items'
 import { ensureSettings, type AppSettings } from '../data/settings'
 import { signOut, supabase } from '../data/supabase'
 import { fetchEvents } from '../data/calendar'
 import { currentBlock } from '../domain/blocks'
 import { placeEvents, type PlacedEvent } from '../domain/calendar-blocks'
+import { dueByToday } from '../domain/due'
 import { owlFor } from '../domain/owl'
 import { joinLabels, restOfDay } from '../domain/rest-of-day'
 import { currentSlot, weekStartOf, type Slot } from '../domain/slot'
@@ -15,6 +16,7 @@ import InboxList from './InboxList'
 import NowView from './NowView'
 import Owl from './Owl'
 import QuoteLine from './QuoteLine'
+import TodayDue from './TodayDue'
 import SignIn from './SignIn'
 import { useAutoSync } from './useAutoSync'
 import WeekView from './WeekView'
@@ -44,6 +46,7 @@ function Home() {
   const [today, setToday] = useState<WeekEntry[]>([])
   const [events, setEvents] = useState<PlacedEvent[]>([])
   const [inbox, setInbox] = useState<Item[]>([])
+  const [due, setDue] = useState<Item[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const [tab, setTab] = useState<'now' | 'week'>('now')
   // 項目の変更や、ブロックの切り替わり(slotKey の変化)のたびに読み直す
@@ -72,10 +75,13 @@ function Home() {
     let active = true
     const at = new Date()
     const weekStart = weekStartOf(at, settings.timeZone)
-    void loadHome(currentSlot(at, settings.timeZone, settings.blocks), weekStart).then((res) => {
+    const tp = zonedParts(at, settings.timeZone)
+    const todayDate = `${tp.year}-${pad(tp.month)}-${pad(tp.day)}`
+    void loadHome(currentSlot(at, settings.timeZone, settings.blocks), weekStart, todayDate).then((res) => {
       if (!active) return
       if ('message' in res) return setMessage(res.message)
       setInbox(res.inbox)
+      setDue(res.due)
       setEntries(res.entries)
       setToday(res.week)
     })
@@ -149,6 +155,7 @@ function Home() {
               onResult={(entry, result) => run(setResult(entry, result))}
               onUnplace={(entry) => run(unplace(entry))}
             />
+            <TodayDue {...dueByToday(due, date)} onComplete={(item) => run(completeItem(item.id))} />
             {message && <p className="m-0 text-sm text-ink-3">{message}</p>}
             <div className="relative hidden lg:block">
               <QuoteLine scene={scene} date={date} />
@@ -198,12 +205,14 @@ function Home() {
 async function loadHome(
   slot: Slot | null,
   weekStart: string,
-): Promise<{ inbox: Item[]; entries: NowEntry[]; week: WeekEntry[] } | { message: string }> {
-  const [inbox, week] = await Promise.all([listInbox(), listWeek(weekStart)])
+  today: string,
+): Promise<{ inbox: Item[]; entries: NowEntry[]; week: WeekEntry[]; due: Item[] } | { message: string }> {
+  const [inbox, week, due] = await Promise.all([listInbox(), listWeek(weekStart), listDue({ to: today })])
   if (!inbox.ok) return { message: inbox.message }
   if (!week.ok) return { message: week.message }
-  if (!slot) return { inbox: inbox.data, entries: [], week: week.data }
+  if (!due.ok) return { message: due.message }
+  if (!slot) return { inbox: inbox.data, entries: [], week: week.data, due: due.data }
   const now = await listNow(slot)
   if (!now.ok) return { message: now.message }
-  return { inbox: inbox.data, entries: now.data, week: week.data }
+  return { inbox: inbox.data, entries: now.data, week: week.data, due: due.data }
 }

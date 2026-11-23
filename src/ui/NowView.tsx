@@ -32,15 +32,15 @@ export default function NowView({
   const large = entries.length <= 1
   return (
     <section className="relative">
-      <p className="m-0 text-xs tracking-[0.18em] text-ink-3">{block.label}のあいだ</p>
+      <h1 className="m-0 text-xs font-normal tracking-[0.18em] text-ink-3">{block.label}のあいだ</h1>
       {owl && <Owl pose={owl} className="absolute -top-8 right-2" />}
       {events.length > 0 && <p className="m-0 mt-2 text-sm text-ink-3">この時間には、{events.join('、')}がある。</p>}
       {entries.length === 0 ? (
-        <h1 className="mt-4 mb-0 font-mincho text-[30px] leading-relaxed font-normal tracking-wide lg:text-[40px]">
+        <p className="mt-4 mb-0 font-mincho text-[30px] leading-relaxed font-normal tracking-wide lg:text-[40px]">
           何も決めていない、
           <br />
           余白の時間。
-        </h1>
+        </p>
       ) : (
         <div className="mt-4 flex flex-col gap-8">
           {entries.map((entry) => (
@@ -51,11 +51,11 @@ export default function NowView({
                   label={entry.result === 'done' ? '終えた(押すと途中までに戻す)' : '終えた'}
                   onClick={() => onResult(entry, entry.result === 'done' ? 'partial' : 'done')}
                 />
-                <h1
+                <h2
                   className={`m-0 font-mincho leading-relaxed font-normal tracking-wide ${large ? 'text-[30px] lg:text-[44px]' : 'text-2xl lg:text-3xl'} ${entry.result === 'done' ? 'text-ink-3' : ''}`}
                 >
                   {entry.item.body}
-                </h1>
+                </h2>
               </div>
               <div className="mt-3 ml-12 flex flex-wrap gap-x-5 font-hand text-[15px]">
                 <button type="button" onClick={() => onResult(entry, 'partial')} className={`min-h-11 ${entry.result === 'partial' ? 'text-ink underline decoration-rule underline-offset-[6px]' : 'text-ink-3'}`}>
