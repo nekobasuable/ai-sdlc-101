@@ -51,10 +51,18 @@ function remoteChanged(item: LocalItem, task: RemoteTask): boolean {
   return item.googleUpdatedAt === null || time(task.updated) !== time(item.googleUpdatedAt)
 }
 
-/** アプリの項目を作る先のリスト。領域に結びついたリスト、なければ既定のリスト(R31)。どちらもなければ null(C11) */
+/**
+ * 既定のリスト。明示的に選んだものがなければ、同期しているリストの最初の1つ(R31)。
+ * 「つなげば、そのまま双方向に同期される」ことを優先する(plan/005 の確認で、プロダクトオーナーの指摘を受けて変更)。
+ */
+export function defaultList(links: ListLink[]): string | null {
+  return (links.find((l) => l.isDefault) ?? links[0])?.listId ?? null
+}
+
+/** アプリの項目を作る先のリスト。領域に結びついたリスト、なければ既定のリスト(R31) */
 function targetList(item: LocalItem, links: ListLink[]): string | null {
   const byArea = item.area ? links.find((l) => l.area === item.area) : undefined
-  return (byArea ?? links.find((l) => l.isDefault))?.listId ?? null
+  return byArea?.listId ?? defaultList(links)
 }
 
 export function planSync(items: LocalItem[], tasks: RemoteTask[], links: ListLink[]): SyncOp[] {

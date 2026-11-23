@@ -65,8 +65,13 @@ describe('planSync', () => {
     expect(planSync([item], [], [UNIV, DEFAULT])).toEqual([{ kind: 'createRemote', item, listId: 'life' }])
   })
 
-  it('既定のリストもなければ、Google には送らない', () => {
-    expect(planSync([appOnly()], [], [UNIV])).toEqual([])
+  it('既定のリストを選んでいなければ、同期しているリストの最初の1つに作る', () => {
+    const item = appOnly()
+    expect(planSync([item], [], [UNIV])).toEqual([{ kind: 'createRemote', item, listId: 'univ' }])
+  })
+
+  it('同期しているリストがなければ、Google には送らない', () => {
+    expect(planSync([appOnly()], [], [])).toEqual([])
   })
 
   it('完了済みや削除済みの、アプリにだけある項目は送らない', () => {

@@ -54,7 +54,8 @@ export default function SyncSettings({ onSynced }: { onSynced: () => void }) {
                   <input
                     type="checkbox"
                     checked={Boolean(link)}
-                    onChange={(e) => update(list.id, e.target.checked ? { area: null, isDefault: false } : null)}
+                    // 最初にチェックしたリストは、自動で既定のリストにする
+                    onChange={(e) => update(list.id, e.target.checked ? { area: null, isDefault: links.length === 0 } : null)}
                   />
                   {list.title}
                 </label>
@@ -73,7 +74,11 @@ export default function SyncSettings({ onSynced }: { onSynced: () => void }) {
                       ))}
                     </select>
                     <label className="flex items-center gap-1">
-                      <input type="radio" checked={link.isDefault} onChange={() => update(list.id, { ...link, isDefault: true })} />
+                      <input
+                        type="radio"
+                        checked={link.isDefault || (!links.some((l) => l.isDefault) && links[0]?.listId === list.id)}
+                        onChange={() => update(list.id, { ...link, isDefault: true })}
+                      />
                       既定のリスト
                     </label>
                   </div>
@@ -82,7 +87,7 @@ export default function SyncSettings({ onSynced }: { onSynced: () => void }) {
             )
           })}
           <p className="text-stone-400">
-            アプリで放り込んだ項目は、領域に結びついたリスト、なければ既定のリストに入ります。既定のリストがなければ、Google ToDo には入りません。
+            アプリで放り込んだ項目は、既定のリストに入ります(領域に結びついたリストがあれば、そちらに入ります)。
           </p>
           <button disabled={busy} className="rounded border border-stone-300 px-3 py-1 disabled:opacity-50" onClick={sync}>
             今すぐ同期
