@@ -1,7 +1,7 @@
 -- plan/003 の証明: 本人の行だけを読み書きできる(spec N6)
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(11);
+select plan(15);
 
 -- public スキーマに、RLS が無効なテーブルが1つもない
 select is_empty(
@@ -9,6 +9,12 @@ select is_empty(
      where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity $$,
   'public の全テーブルで RLS が有効'
 );
+
+-- 権限(GRANT)が本番と同じ状態である(plan/004 で判明した、開発と本番のずれの防止)
+select ok(has_table_privilege('authenticated', 'public.settings', 'SELECT'), 'ログインユーザーは settings を使える');
+select ok(has_table_privilege('authenticated', 'public.items', 'INSERT'), 'ログインユーザーは items に書ける');
+select ok(not has_table_privilege('anon', 'public.items', 'SELECT'), 'anon には items の権限がない');
+select ok(not has_table_privilege('authenticated', 'public.google_credentials', 'SELECT'), 'ログインユーザーにも google_credentials の権限がない');
 
 -- 2人のユーザーを用意する
 insert into auth.users (id, email) values
@@ -45,7 +51,7 @@ delete from public.items where id = '11111111-1111-1111-1111-111111111111';
 
 -- ログインしていない人(anon)
 set local role anon;
-select is((select count(*) from public.items)::int, 0, 'anon は何も読めない');
+select throws_ok($$ select count(*) from public.items $$, '42501', null, 'anon は何も読めない');
 
 -- A に戻って、B の更新と削除が効いていないことを確かめる
 set local role authenticated;
@@ -58,7 +64,7 @@ reset role;
 insert into public.google_credentials (user_id, encrypted_refresh_token)
   values ('00000000-0000-0000-0000-00000000000a', 'encrypted-placeholder');
 set local role authenticated;
-select is((select count(*) from public.google_credentials)::int, 0, '本人でも google_credentials を読めない');
+select throws_ok($$ select count(*) from public.google_credentials $$, '42501', null, '本人でも google_credentials を読めない');
 select throws_ok(
   $$ insert into public.google_credentials (user_id, encrypted_refresh_token) values ('00000000-0000-0000-0000-00000000000a', 'x') $$,
   '42501', null, '本人でも google_credentials に書けない'
