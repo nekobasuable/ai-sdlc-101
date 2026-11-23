@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.2.0
       - name: Link project
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
@@ -63,9 +63,9 @@ jobs:
           supabase link --project-ref "$ref"
       - name: Mark manually applied migrations
         if: ${{ inputs.repair_initial_migrations }}
-        run: supabase migration repair --status applied 20261123000000 20261123010000
+        run: supabase migration repair --remote --status applied 20261123000000 20261123010000
       - name: Apply migrations
-        run: supabase db push
+        run: supabase db push --remote
       - name: Deploy functions
         run: |
           if ls supabase/functions/*/index.ts >/dev/null 2>&1; then
