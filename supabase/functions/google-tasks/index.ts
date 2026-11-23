@@ -226,9 +226,11 @@ async function apply(admin: SupabaseClient, userId: string, accessToken: string,
     case 'createRemote': {
       const taskPath = `/lists/${encodeURIComponent(op.listId)}/tasks`
       const created = await google(accessToken, taskPath, { method: 'POST', body: JSON.stringify(toGoogle(op.item)) })
-      const recorded = await items
-        .update({ google_task_id: created.id, google_list_id: op.listId, google_updated_at: created.updated, synced_at: SYNC_STAMP })
-        .eq('id', op.item.id)
+      const recorded = await recordAfterRemote(admin, op.item, {
+        google_task_id: created.id,
+        google_list_id: op.listId,
+        google_updated_at: created.updated,
+      })
       if (recorded.error) {
         // 記録に失敗したら、作った Google 側のタスクを消して戻す(次の同期で二重に作らないため。PR レビューの指摘)
         await google(accessToken, `${taskPath}/${encodeURIComponent(created.id)}`, { method: 'DELETE' }).catch(() => {})
@@ -240,10 +242,26 @@ async function apply(admin: SupabaseClient, userId: string, accessToken: string,
         method: 'PATCH',
         body: JSON.stringify(toGoogle(op.item)),
       })
-      return check(await items.update({ google_updated_at: updated.updated, synced_at: SYNC_STAMP }).eq('id', op.item.id))
+      return check(await recordAfterRemote(admin, op.item, { google_updated_at: updated.updated }))
     }
     case 'deleteRemote':
       await google(accessToken, `/lists/${encodeURIComponent(op.listId)}/tasks/${encodeURIComponent(op.taskId)}`, { method: 'DELETE' })
-      return check(await items.update({ synced_at: SYNC_STAMP }).eq('id', op.item.id))
+      return check(await recordAfterRemote(admin, op.item, {}))
   }
+}
+
+/**
+ * Google に送ったあとの記録(3回目の PR レビューの指摘)。
+ * 読んだあとに利用者が項目を変えていなければ、Google 側の情報とあわせて「同期済み」にする。
+ * 変えていたら、Google 側の情報だけを記録し、「同期済み」にはしない。その変更は次の同期で Google に送り直される。
+ */
+async function recordAfterRemote(admin: SupabaseClient, item: LocalItem, fields: Record<string, string>) {
+  const synced = await admin
+    .from('items')
+    .update({ ...fields, synced_at: SYNC_STAMP })
+    .eq('id', item.id)
+    .eq('updated_at', item.updatedAt)
+    .select('id')
+  if (synced.error || (synced.data ?? []).length > 0 || Object.keys(fields).length === 0) return synced
+  return admin.from('items').update(fields).eq('id', item.id)
 }
