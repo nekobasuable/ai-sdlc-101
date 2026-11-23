@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint && tsc -b --noEmit",
+    "lint": "oxlint --deny-warnings && tsc -b --noEmit",
     "test": "vitest run",
     "preview": "vite preview",
     "test:db": "supabase test db",

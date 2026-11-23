@@ -39,14 +39,14 @@ export type Database = {
                   ]
                 },"google_credentials": {
                   Row: {
-                    "encrypted_refresh_token": string,"updated_at": string,"user_id": string
+                    "encrypted_refresh_token": string,"invalid_at": string | null,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "encrypted_refresh_token": string,"updated_at"?: string,"user_id": string
+                    "encrypted_refresh_token": string,"invalid_at"?: string | null,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "encrypted_refresh_token"?: string,"updated_at"?: string,"user_id"?: string
+                    "encrypted_refresh_token"?: string,"invalid_at"?: string | null,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     

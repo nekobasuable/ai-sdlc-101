@@ -7,14 +7,18 @@ const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined
 /** 環境変数が未設定なら null(試作の画面で、その旨を表示する) */
 export const supabase: SupabaseClient<Database> | null = url && key ? createClient<Database>(url, key) : null
 
-const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly'
+// カレンダーの読み取りと、Google ToDo の読み書き(plan/005)
+const GOOGLE_SCOPES = [
+  'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/tasks',
+].join(' ')
 
 export async function signInWithGoogle(): Promise<void> {
   if (!supabase) return
   await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      scopes: CALENDAR_SCOPE,
+      scopes: GOOGLE_SCOPES,
       redirectTo: window.location.origin + import.meta.env.BASE_URL,
       // Google の長期の鍵(provider refresh token)も受け取れるか確かめる(plan/002)
       queryParams: { access_type: 'offline', prompt: 'consent' },
@@ -50,6 +54,10 @@ export function watchSignIn(onChange: (record: SpikeRecord | null) => void): () 
         gotRefreshToken: Boolean(session.provider_refresh_token),
       }
       localStorage.setItem(SPIKE_KEY, JSON.stringify(record))
+      // 長期の鍵はブラウザに残さず、サーバーに送って暗号化して保管する(plan/005 段階 B、spec C12)
+      if (session.provider_refresh_token) {
+        void supabase?.functions.invoke('google-token', { body: { refresh_token: session.provider_refresh_token } })
+      }
     }
     onChange(session ? readSpikeRecord() : null)
   })

@@ -11,8 +11,8 @@
 ## Commands
 - `npm run dev`: 開発サーバー
 - `npm run build`: ビルド(`tsc -b && vite build`)
-- `npm run lint`: lint(oxlint)と型チェック。警告ゼロにする
-- `npm test`: 単体テスト(Vitest)。`src/domain` が対象
+- `npm run lint`: lint(oxlint)と型チェック。警告があっても失敗する(`--deny-warnings`)。終了コードだけでなく出力も見る
+- `npm test`: 単体テスト(Vitest)。`src/domain` と `supabase/functions/_shared` が対象
 - `npx supabase start -x studio,imgproxy,vector,logflare,edge-runtime,supavisor,realtime,storage-api,mailpit,postgres-meta`: 開発用の Supabase を最小構成で起動(初回は約2.5分、イメージ約4GB)。止めるときは `npx supabase stop`
   - 作業環境では Docker デーモンが止まっていることがある。`docker info` が失敗したら、先に `dockerd` をバックグラウンドで起動する。起動が「process with PID ... is still running」で失敗したら、古い `/var/run/docker.pid` を消してから起動し直す。
 - `npm run test:db`: データベースのテスト(pgTAP、`supabase/tests/`)。開発用の Supabase の起動が必要。マイグレーションを変えたら `npx supabase db reset` で適用してから実行する
@@ -24,7 +24,7 @@
 - `src/data/`: Supabase とのやり取り。Supabase のクライアントはここ以外から呼ばない。
 - `src/ui/`: React の画面と部品。
 - `supabase/migrations/`: テーブル定義。スキーマの変更は必ずマイグレーションで行う。
-- `supabase/functions/`: サーバー側の関数(通知の送信、AI 仕分け)。
+- `supabase/functions/`: サーバー側の関数(Google の鍵の保管、Google ToDo の同期、将来は通知と AI 仕分け)。判断の処理は `_shared/` に純粋な関数として置き、Vitest でテストする。関数の秘密(Google のクライアントシークレット、暗号化用の鍵)は Supabase の Edge Functions の Secrets にあり、コードやリポジトリには置かない。
 
 ## 規約
 - TypeScript は strict。
@@ -40,6 +40,7 @@
 
 ## Claude が間違えやすいこと
 同じ間違いを2回したら、ここに追記する。
+- lint の結果を終了コードだけで判断し、警告を見落とした(plan/004)。今は警告でも失敗する設定にしてある。
 - 空いている枠を自動で埋める、詰め込みを促す、といった「効率化」の機能を提案しない(P1、P2)。
 
 ## 完了の定義

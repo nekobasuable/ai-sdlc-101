@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { listInbox, listNow, placeNow, setResult, unplace, type Item, type NowEntry, type PlacementResult } from '../data/items'
 import { ensureSettings, type AppSettings } from '../data/settings'
 import { signOut, supabase } from '../data/supabase'
 import { currentBlock } from '../domain/blocks'
-import { currentSlot } from '../domain/slot'
+import { currentSlot, type Slot } from '../domain/slot'
 import Capture from './Capture'
 import InboxList from './InboxList'
 import NowView from './NowView'
@@ -44,26 +44,29 @@ function Home() {
   const block = settings ? currentBlock(now, settings.timeZone, settings.blocks) : null
   const slotKey = slot ? `${slot.weekStart}/${slot.day}/${slot.blockId}` : 'none'
 
-  const refresh = useCallback(async () => {
-    const inboxRes = await listInbox()
-    if (!inboxRes.ok) return setMessage(inboxRes.message)
-    setInbox(inboxRes.data)
-    if (!slot) return setEntries([])
-    const nowRes = await listNow(slot)
-    if (!nowRes.ok) return setMessage(nowRes.message)
-    setEntries(nowRes.data)
-    // slotKey が変わったとき(ブロックが切り替わったとき)だけ作り直す
-  }, [slotKey])
+  // 項目の変更や、ブロックの切り替わり(slotKey の変化)のたびに読み直す
+  const [version, setVersion] = useState(0)
+  const reload = () => setVersion((v) => v + 1)
 
   useEffect(() => {
-    if (settings) void refresh()
-  }, [settings, refresh])
+    if (!settings) return
+    let active = true
+    void loadHome(currentSlot(new Date(), settings.timeZone, settings.blocks)).then((res) => {
+      if (!active) return
+      if ('message' in res) return setMessage(res.message)
+      setInbox(res.inbox)
+      setEntries(res.entries)
+    })
+    return () => {
+      active = false
+    }
+  }, [settings, slotKey, version])
 
   async function run(action: Promise<{ ok: boolean; message?: string }>) {
     const res = await action
     if (!res.ok) return setMessage(res.message ?? null)
     setMessage(null)
-    await refresh()
+    reload()
   }
 
   if (!settings) return <p className="p-4 text-stone-500">{message ?? '読み込んでいます…'}</p>
@@ -82,7 +85,17 @@ function Home() {
       <button className="text-sm text-stone-400" onClick={signOut}>
         ログアウト
       </button>
-      <Capture onAdded={() => void refresh()} onError={setMessage} />
+      <Capture onAdded={reload} onError={setMessage} />
     </main>
   )
+}
+
+/** Inbox と、今のブロックの項目を読む */
+async function loadHome(slot: Slot | null): Promise<{ inbox: Item[]; entries: NowEntry[] } | { message: string }> {
+  const inbox = await listInbox()
+  if (!inbox.ok) return { message: inbox.message }
+  if (!slot) return { inbox: inbox.data, entries: [] }
+  const now = await listNow(slot)
+  if (!now.ok) return { message: now.message }
+  return { inbox: inbox.data, entries: now.data }
 }
