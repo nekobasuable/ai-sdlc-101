@@ -14,6 +14,7 @@ const WAIT_MS = 5000 // 無料枠の回数の上限にかからないよう、�
 
 const apiKey = process.env.GEMINI_API_KEY
 const model = process.env.GEMINI_MODEL
+const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || undefined
 if (!apiKey || !model) {
   // キーがない(未登録、またはフォークからの PR)ときは、評価の失敗と区別するため、回っていないことをはっきり出して飛ばす(PR #8 のレビューの Nit)
   const note = '評価は回っていない: GEMINI_API_KEY と GEMINI_MODEL が設定されていないため'
@@ -32,7 +33,7 @@ for (const c of cases) {
   const problems: string[] = []
   let reached = true
   try {
-    const r = parseReflection(await generateJson({ provider: 'gemini', apiKey, model, retries: 3 }, buildReflectRequest(c.input)))
+    const r = parseReflection(await generateJson({ provider: 'gemini', apiKey, model, fallbackModel, retries: 3 }, buildReflectRequest(c.input)))
     if (!r) {
       problems.push('返事の形が違う')
     } else {

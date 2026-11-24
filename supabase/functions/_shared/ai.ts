@@ -2,7 +2,17 @@
 // 実行環境(Deno / Node)に依存しないよう、鍵とモデル名は呼ぶ側から受け取る。
 import type { AiRequest } from './reflect.ts'
 
-export type AiConfig = { provider: 'gemini'; apiKey: string; model: string; /** 混雑(503)や回数の上限(429)のときに呼び直す回数 */ retries?: number }
+export type AiConfig = {
+  provider: 'gemini'
+  apiKey: string
+  model: string
+  /** 本命のモデルが混雑で使えないときに、1回だけ使う控えのモデル(任意。plan/012) */
+  fallbackModel?: string
+  /** 混雑(503)や回数の上限(429)のときに呼び直す回数 */
+  retries?: number
+  /** 呼び直しの間隔の基準(ミリ秒)。テストでは 0 にする */
+  backoffMs?: number
+}
 
 export class AiUnavailable extends Error {
   /** 混雑や回数の上限など、待てば通りうる失敗か */
@@ -18,30 +28,42 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 /** 決まった形(JSON)で答えてもらう。答えは JSON として読んだもの(形の確かめは呼ぶ側) */
 export async function generateJson(config: AiConfig, req: AiRequest): Promise<unknown> {
-  const retries = config.retries ?? 1
+  try {
+    return await withRetries(config, config.model, req)
+  } catch (e) {
+    // 本命が混雑で使えなければ、控えのモデルで1回だけ呼ぶ(plan/012、spec R42)
+    if (e instanceof AiUnavailable && e.retryable && config.fallbackModel) return withRetries({ ...config, retries: 0 }, config.fallbackModel, req)
+    throw e
+  }
+}
+
+async function withRetries(config: AiConfig, model: string, req: AiRequest): Promise<unknown> {
+  const retries = config.retries ?? 2
+  const backoff = config.backoffMs ?? 5_000
   for (let attempt = 0; ; attempt++) {
     try {
       switch (config.provider) {
         case 'gemini':
-          return await gemini(config, req)
+          return await gemini(config.apiKey, model, req)
       }
     } catch (e) {
       // 待てば通りうる失敗だけ、間を空けて呼び直す(plan/011 の評価で、503 と 429 が続いたため)
       if (!(e instanceof AiUnavailable) || !e.retryable || attempt >= retries) throw e
-      await wait(5_000 * 2 ** attempt)
+      await wait(backoff * 2 ** attempt)
     }
   }
 }
 
 // 返事を待つ上限。過ぎたら「いまは使えない」として扱う(PR #8 のレビューの Nit)
-const TIMEOUT_MS = 30_000
+// 本番の最悪の待ち時間を、Edge Functions の上限(150秒)より十分短く保つ(PR #9 のレビューの Nit)
+const TIMEOUT_MS = 25_000
 
-async function gemini(config: AiConfig, req: AiRequest): Promise<unknown> {
+async function gemini(apiKey: string, model: string, req: AiRequest): Promise<unknown> {
   let res: Response
   try {
-    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.model)}:generateContent`, {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: req.system }] },
         contents: [{ role: 'user', parts: [{ text: req.user }] }],

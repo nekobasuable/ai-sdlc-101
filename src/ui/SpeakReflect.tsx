@@ -1,10 +1,23 @@
 import { useState } from 'react'
 import { addItem } from '../data/items'
 import { draftReflection, type Reflection } from '../data/reflect'
+import { joinSpoken } from '../domain/speech-text'
+import MicButton from './MicButton'
+import { useSpeech } from './useSpeech'
+
+// サーバー側の関数の上限と同じ(supabase/functions/_shared/reflect.ts の MAX_INPUT)
+const MAX_INPUT = 4000
 
 // 話して省みる(plan/011、spec R40、R41)。AI は下書きまで。何を残すかは本人が選ぶ(C9)
 export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Promise<boolean> }) {
   const [spoken, setSpoken] = useState('')
+  const [base, setBase] = useState('')
+  const speech = useSpeech((heard) => setSpoken(joinSpoken(base, heard, '\n').slice(0, MAX_INPUT)))
+  const toggleMic = () => {
+    if (speech.listening) return speech.stop()
+    setBase(spoken)
+    speech.start()
+  }
   const [draft, setDraft] = useState<Reflection | null>(null)
   const [picked, setPicked] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
@@ -18,6 +31,8 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
   }
 
   async function arrange() {
+    // 下書きを出すとマイクのボタンが消えるので、先に聞き取りを止める(PR #9 のレビューの Nit)
+    if (speech.listening) speech.stop()
     if (!spoken.trim() || busy) return
     setBusy(true)
     const res = await draftReflection(spoken)
@@ -30,6 +45,7 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
   }
 
   async function keep(text: string, carry: string[]) {
+    if (speech.listening) speech.stop()
     setBusy(true)
     let memoDone = memoKept
     if (!memoDone && text) {
@@ -55,17 +71,27 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
   const link = 'min-h-11 font-hand text-[15px] text-ink underline decoration-rule underline-offset-[6px] disabled:opacity-40'
   return (
     <section>
-      <label htmlFor="speak" className="mb-2 block text-xs tracking-[0.18em] text-ink-3">
-        話して省みる
-      </label>
+      <div className="mb-1 flex items-center justify-between">
+        <label htmlFor="speak" className="text-xs tracking-[0.18em] text-ink-3">
+          話して省みる
+        </label>
+        {speech.supported && !draft && <MicButton listening={speech.listening} onToggle={toggleMic} />}
+      </div>
       <textarea
         id="speak"
         rows={4}
         value={spoken}
-        onChange={(e) => setSpoken(e.target.value)}
+        onChange={(e) => {
+          // 手で直したら聞き取りを止め、直した文字を残す(PR #9 のレビューの Nit)
+          if (speech.listening) speech.stop()
+          setSpoken(e.target.value)
+        }}
         placeholder="思ったことを、そのまま"
+        maxLength={MAX_INPUT}
         className="w-full resize-none border-b border-rule bg-transparent py-2 font-hand text-base leading-loose text-ink outline-none placeholder:text-ink-3"
       />
+      {spoken.length > MAX_INPUT - 300 && <p className="m-0 mt-1 text-xs text-ink-3">あと {MAX_INPUT - spoken.length} 文字まで。</p>}
+      {speech.error && <p className="m-0 mt-1 text-xs text-ink-3">{speech.error}</p>}
       {!draft && (
         <div className="mt-1 flex gap-5">
           <button type="button" disabled={busy || !spoken.trim()} onClick={arrange} className={link}>

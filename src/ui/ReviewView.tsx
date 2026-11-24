@@ -163,7 +163,7 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
             </section>
           )}
 
-          <SpeakReflect onKeep={appendToMemo} />
+          <SpeakReflect key={weekStart} onKeep={appendToMemo} />
 
           <section>
             <label htmlFor="weekly-memo" className="mb-2 block text-xs tracking-[0.18em] text-ink-3">
