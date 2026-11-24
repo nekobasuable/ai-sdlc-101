@@ -9,6 +9,13 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
   const [picked, setPicked] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  // 「残す」の途中で失敗したとき、押し直しで成功した分をやり直さないよう、済んだものを覚えておく(PR #8 のレビューの指摘)
+  const [memoKept, setMemoKept] = useState(false)
+  const [added, setAdded] = useState<Set<string>>(new Set())
+  const resetProgress = () => {
+    setMemoKept(false)
+    setAdded(new Set())
+  }
 
   async function arrange() {
     if (!spoken.trim() || busy) return
@@ -19,17 +26,30 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
     setMessage(null)
     setDraft(res.data)
     setPicked(new Set())
+    resetProgress()
   }
 
   async function keep(text: string, carry: string[]) {
     setBusy(true)
-    const kept = await onKeep(text)
-    const added = await Promise.all(carry.map((c) => addItem(c)))
+    let memoDone = memoKept
+    if (!memoDone && text) {
+      memoDone = await onKeep(text)
+      if (memoDone) setMemoKept(true)
+    }
+    const nowAdded = new Set(added)
+    for (const c of carry) {
+      if (nowAdded.has(c)) continue
+      const res = await addItem(c)
+      if (res.ok) nowAdded.add(c)
+    }
+    setAdded(nowAdded)
     setBusy(false)
-    if (!kept || added.some((r) => !r.ok)) return setMessage('まだ残せていないものがある。つながったら、もう一度残せる。')
+    const allDone = (memoDone || !text) && carry.every((c) => nowAdded.has(c))
+    if (!allDone) return setMessage('まだ残せていないものがある。つながったら、もう一度押すと、残りだけを残す。')
     setMessage(null)
     setSpoken('')
     setDraft(null)
+    resetProgress()
   }
 
   const link = 'min-h-11 font-hand text-[15px] text-ink underline decoration-rule underline-offset-[6px] disabled:opacity-40'
@@ -121,7 +141,15 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
             >
               残す
             </button>
-            <button type="button" disabled={busy} onClick={() => setDraft(null)} className="min-h-11 font-hand text-[15px] text-ink-3">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setDraft(null)
+                resetProgress()
+              }}
+              className="min-h-11 font-hand text-[15px] text-ink-3"
+            >
               話し直す
             </button>
           </div>

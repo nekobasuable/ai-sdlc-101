@@ -14,16 +14,25 @@ export async function generateJson(config: AiConfig, req: AiRequest): Promise<un
   }
 }
 
+// 返事を待つ上限。過ぎたら「いまは使えない」として扱う(PR #8 のレビューの Nit)
+const TIMEOUT_MS = 30_000
+
 async function gemini(config: AiConfig, req: AiRequest): Promise<unknown> {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.model)}:generateContent`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: req.system }] },
-      contents: [{ role: 'user', parts: [{ text: req.user }] }],
-      generationConfig: { responseMimeType: 'application/json', responseSchema: req.schema, temperature: 0.3 },
-    }),
-  })
+  let res: Response
+  try {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.model)}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: req.system }] },
+        contents: [{ role: 'user', parts: [{ text: req.user }] }],
+        generationConfig: { responseMimeType: 'application/json', responseSchema: req.schema, temperature: 0.3 },
+      }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    })
+  } catch {
+    throw new AiUnavailable('Gemini: no response (timeout or network)')
+  }
   // 429 は無料枠の回数の上限。ほかの失敗とまとめて「いまは使えない」として扱う
   if (!res.ok) throw new AiUnavailable(`Gemini: ${res.status}`)
   const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }

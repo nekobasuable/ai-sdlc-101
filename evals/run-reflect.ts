@@ -13,8 +13,11 @@ const WAIT_MS = 5000 // 無料枠の回数の上限にかからないよう、�
 const apiKey = process.env.GEMINI_API_KEY
 const model = process.env.GEMINI_MODEL
 if (!apiKey || !model) {
-  console.error('GEMINI_API_KEY と GEMINI_MODEL を設定してください')
-  process.exit(1)
+  // キーがない(未登録、またはフォークからの PR)ときは、評価の失敗と区別するため、回っていないことをはっきり出して飛ばす(PR #8 のレビューの Nit)
+  const note = '評価は回っていない: GEMINI_API_KEY と GEMINI_MODEL が設定されていないため'
+  console.log(`::warning::${note}`)
+  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## 話して省みるの評価\n${note}\n`)
+  process.exit(0)
 }
 
 const cases = JSON.parse(readFileSync(new URL('./reflect/cases.json', import.meta.url), 'utf8')) as Case[]
