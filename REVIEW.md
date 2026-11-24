@@ -25,6 +25,9 @@ PR をレビューする AI(と人間)のための観点。プレイブック St
 - 見た目: `.claude/skills/life-dashboard-look/SKILL.md` に従っているか(色、書体、箱型のボタンやカードを使っていないか、余白の見せ方、PC での2列の配置)
 - 本番への反映: マイグレーションで行っているか(SQL Editor に頼っていないか)。CI で本番を変えるコマンドに `--yes`(と `--remote`)が付いているか
 
+### AI の振る舞い
+- AI への指示(`supabase/functions/_shared/reflect.ts`)、窓口(`_shared/ai.ts`)、`evals/` を変えた PR では、Evals の結果(○×の表)が実際に回っていること(「評価は回っていない」になっていないこと)。回っていなければ Important とする(plan/012)
+
 ## What Important means here
 Important は、振る舞いが壊れる、データが漏れる・消える・重複する、spec の原則に反する、のどれかに当たるものに限る。
 命名、書き方の好み、細かい読みやすさは Nit とする。

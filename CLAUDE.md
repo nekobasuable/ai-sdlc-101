@@ -17,7 +17,7 @@
 - `npx supabase start -x studio,imgproxy,vector,logflare,edge-runtime,supavisor,realtime,storage-api,mailpit,postgres-meta`: 開発用の Supabase を最小構成で起動(初回は約2.5分、イメージ約4GB)。止めるときは `npx supabase stop`
   - 作業環境では Docker デーモンが止まっていることがある。`docker info` が失敗したら、先に `dockerd` をバックグラウンドで起動する。起動が「process with PID ... is still running」で失敗したら、古い `/var/run/docker.pid` を消してから起動し直す。
 - `npm run test:db`: データベースのテスト(pgTAP、`supabase/tests/`)。開発用の Supabase の起動が必要。マイグレーションを変えたら `npx supabase db reset` で適用してから実行する
-- `npm run eval:reflect`: 話して省みるの AI の評価(evals、plan/011)。`GEMINI_API_KEY` と `GEMINI_MODEL` が要る。AI への指示(`supabase/functions/_shared/reflect.ts`)や窓口(`_shared/ai.ts`)、`evals/` を変えたら回す。PR では `.github/workflows/evals.yml` が回す
+- `npm run eval:reflect`: 話して省みるの AI の評価(evals、plan/011)。`GEMINI_API_KEY` と `GEMINI_MODEL` が要る。AI への指示(`supabase/functions/_shared/reflect.ts`)や窓口(`_shared/ai.ts`)、`evals/` を変えたら回す。PR では `.github/workflows/evals.yml` が回す。キーがないと「評価は回っていない」の警告だけで合格扱いになるので、AI への指示を変えた PR では、マージの前に Evals の ○× の表が出ていることを人が確かめる
 - `npm run gen:types`: データベースの型を `src/data/database.types.ts` に生成する。マイグレーションを変えたら実行する(手で編集しない)
 - `.claude/hooks/block-secrets.sh`: 秘密の情報を止めるフック。鍵の形の文字列を含む書き込みと `git commit` を止める。止められたら鍵を `.env.local` に移す。
 
