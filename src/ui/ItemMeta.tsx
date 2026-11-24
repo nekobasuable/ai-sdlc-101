@@ -1,8 +1,8 @@
 import type { Item } from '../data/items'
-import { AREAS } from '../domain/areas'
-import { fromQuadrant, toQuadrant } from '../domain/quadrant'
+import { AREAS, type Area } from '../domain/areas'
+import { fromQuadrant, toQuadrant, type Quadrant } from '../domain/quadrant'
 
-export type Classify = (item: Item, meta: { area: string | null; quadrant: number | null }) => void
+export type Classify = (item: Item, meta: { area: Area | null; quadrant: Quadrant | null }) => void
 
 // 仕分けの小さな欄(plan/007 段階 C、R4)。領域と、2つの問い(大切なこと / 急ぐこと)。どれも任意(P5)
 export default function ItemMeta({ item, onClassify }: { item: Item; onClassify: Classify }) {

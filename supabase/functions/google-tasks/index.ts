@@ -70,7 +70,10 @@ async function fetchTasks(accessToken: string, listId: string): Promise<RemoteTa
   return tasks
 }
 
-/** Google の締め切りは日付だけを UTC の0時で表す */
+/**
+ * Google に送る内容。Google の締め切りは日付だけを UTC の0時で表す。
+ * ここで送る列を増やしたら、items の updated_at を進める条件(マイグレーション 20261124040000 の set_items_updated_at)も一緒に直す。
+ */
 const toGoogle = (item: LocalItem) => ({
   title: item.body,
   due: item.dueDate ? `${item.dueDate}T00:00:00.000Z` : null,
