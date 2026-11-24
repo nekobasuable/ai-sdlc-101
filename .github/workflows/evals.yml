@@ -18,6 +18,8 @@ jobs:
   reflect:
     name: reflect evals
     runs-on: ubuntu-latest
+    # 呼び直しと間隔があるので長めに。それでも詰まったら打ち切る(PR #8 のレビューの Nit)
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

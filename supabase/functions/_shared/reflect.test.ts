@@ -39,6 +39,10 @@ describe('ruleViolations', () => {
     expect(ruleViolations({ ...base, carry: ['新規事業のアイデアを考える'] })).toEqual([])
   })
 
+  it('本人の言葉の「すべきか迷う」には反応しない', () => {
+    expect(ruleViolations({ ...base, insights: ['休むべきか迷っている'] })).toEqual([])
+  })
+
   it('命令形、評価や励まし、点数を見つける', () => {
     expect(ruleViolations({ ...base, insights: ['もっと休みましょう'] })).toHaveLength(1)
     expect(ruleViolations({ ...base, words: '今週もよく頑張りましたね。' })).toHaveLength(1)

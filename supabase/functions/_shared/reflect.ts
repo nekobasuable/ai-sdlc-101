@@ -68,7 +68,8 @@ export function parseReflection(raw: unknown): Reflection | null {
 }
 
 // R41 の決まりのうち、言葉で確かめられるもの。評価(evals)で使う
-const IMPERATIVE = /(してください|しましょう|すべき|しなさい|ましょう)/
+// 「すべきか迷う」のような本人の言葉には反応しないよう、「すべき」は文末の言い切りだけを見る(PR #8 のレビューの Nit)
+const IMPERATIVE = /(してください|ましょう|しなさい|すべきだ|すべきである|すべき。|すべき$)/
 const PRAISE = /(素晴らし|すばらし|頑張りました|がんばりました|えらい|偉い|よくできました|お疲れ様|おつかれさま)/
 const SCORE = /(\d+\s*点|\d+\s*\/\s*10|満点)/
 
