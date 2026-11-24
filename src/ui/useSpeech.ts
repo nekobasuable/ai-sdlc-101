@@ -45,18 +45,21 @@ export function useSpeech(onHeard: (heard: string) => void) {
     rec.lang = 'ja-JP'
     rec.continuous = true
     rec.interimResults = true
+    // 止めてすぐ押し直したとき、古い聞き取りの知らせが新しい聞き取りを乱さないように、今の聞き取りの分だけを受け取る(PR #9 のレビューの Nit)
     rec.onresult = (e) => {
-      if (stoppedRef.current) return
+      if (recRef.current !== rec || stoppedRef.current) return
       const results: Result[] = Array.from(e.results, (r) => ({ transcript: r[0].transcript, isFinal: r.isFinal }))
       onHeardRef.current(heardText(results))
     }
     rec.onerror = (e) => {
+      if (recRef.current !== rec) return
       // onerror のあとに onend が来ないブラウザもあるので、ここでも止まった扱いにする
       stoppedRef.current = true
       setListening(false)
       setError(e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'マイクが使えない。ブラウザの設定でマイクを許可すると、使えるようになる。' : 'うまく聞き取れなかった。')
     }
     rec.onend = () => {
+      if (recRef.current !== rec) return
       stoppedRef.current = true
       setListening(false)
     }

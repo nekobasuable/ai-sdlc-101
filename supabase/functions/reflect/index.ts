@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const reflection = parseReflection(await generateJson({ provider: 'gemini', apiKey, model, fallbackModel, retries: 2 }, buildReflectRequest(text)))
+    const reflection = parseReflection(await generateJson({ provider: 'gemini', apiKey, model, fallbackModel, retries: 1 }, buildReflectRequest(text)))
     // 話した内容はログに出さない
     if (!reflection) {
       console.error('reflect の失敗', '返事の形が違う')

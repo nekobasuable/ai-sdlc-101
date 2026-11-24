@@ -55,7 +55,8 @@ async function withRetries(config: AiConfig, model: string, req: AiRequest): Pro
 }
 
 // 返事を待つ上限。過ぎたら「いまは使えない」として扱う(PR #8 のレビューの Nit)
-const TIMEOUT_MS = 30_000
+// 本番の最悪の待ち時間を、Edge Functions の上限(150秒)より十分短く保つ(PR #9 のレビューの Nit)
+const TIMEOUT_MS = 25_000
 
 async function gemini(apiKey: string, model: string, req: AiRequest): Promise<unknown> {
   let res: Response

@@ -14,6 +14,11 @@ on:
 permissions:
   contents: read
 
+# 新しいプッシュが来たら、古い評価は止める(2本同時に Gemini を呼んで回数の上限にかからないように。PR #9)
+concurrency:
+  group: evals-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   reflect:
     name: reflect evals
