@@ -4,7 +4,10 @@ import { listDailyNotes, saveDailyNote } from '../data/notes'
 // 今日のことを、一言だけ(R17a)。離れると残す
 export default function DailyNote({ date }: { date: string }) {
   const [loaded, setLoaded] = useState<{ date: string; note: string } | null>(null)
-  const [draft, setDraft] = useState<string | null>(null)
+  // 下書きは日付と一緒に持つ。日付が変わったら前の日の下書きは使わない(PR #7 のレビューの Nit)
+  const [draftState, setDraftState] = useState<{ date: string; text: string } | null>(null)
+  const draft = draftState?.date === date ? draftState.text : null
+  const setDraft = (text: string | null) => setDraftState(text === null ? null : { date, text })
   const [unsaved, setUnsaved] = useState(false)
 
   useEffect(() => {

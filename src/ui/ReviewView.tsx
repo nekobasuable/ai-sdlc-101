@@ -8,6 +8,7 @@ import { zonedMidnight } from '../domain/time'
 import { weekGrid } from '../domain/week-grid'
 import Owl from './Owl'
 import QuoteLine from './QuoteLine'
+import SpeakReflect from './SpeakReflect'
 
 const WEEKDAYS = ['月', '火', '水', '木', '金', '土', '日']
 type Loaded = { weekStart: string; entries: WeekEntry[]; notes: Map<string, string>; memo: string; completed: Item[] }
@@ -18,6 +19,7 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [memoDraft, setMemoDraft] = useState<string | null>(null)
   const [memoUnsaved, setMemoUnsaved] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
   const [version, setVersion] = useState(0)
   const tz = settings.timeZone
   const weekStart = addDays(weekStartOf(now, tz), offset * 7)
@@ -41,6 +43,21 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
       active = false
     }
   }, [weekStart, tz, version])
+
+  // 選び直しの結果。失敗したら一言だけ出す(PR #7 のレビューの Nit)
+  const after = (res: { ok: boolean }) => {
+    setNotice(res.ok ? null : 'まだ選び直せていない。つながったら、もう一度押せる。')
+    if (res.ok) setVersion((v) => v + 1)
+  }
+
+  // 話して省みるの「残す」: この週のことに書き足す
+  const appendToMemo = async (text: string) => {
+    const current = memoDraft ?? loaded?.memo ?? ''
+    const next = current.trim() ? `${current.trim()}\n\n${text}` : text
+    const res = await saveWeeklyMemo(weekStart, next)
+    if (res.ok) setVersion((v) => v + 1)
+    return res.ok
+  }
 
   const data = loaded?.weekStart === weekStart ? loaded : null
   const entries = data?.entries ?? []
@@ -132,18 +149,21 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
                   <li key={e.item.id} className="flex flex-wrap items-baseline justify-between gap-x-4 text-[15px] text-ink-2">
                     <span>{e.item.body}</span>
                     <span className="flex gap-4 font-hand text-sm">
-                      <button type="button" onClick={() => void reconsider(e.item.id, 'inbox').then(() => setVersion((v) => v + 1))} className="min-h-11 text-ink-3">
+                      <button type="button" onClick={() => void reconsider(e.item.id, 'inbox').then(after)} className="min-h-11 text-ink-3">
                         やることに戻す
                       </button>
-                      <button type="button" onClick={() => void reconsider(e.item.id, 'someday').then(() => setVersion((v) => v + 1))} className="min-h-11 text-ink-3">
+                      <button type="button" onClick={() => void reconsider(e.item.id, 'someday').then(after)} className="min-h-11 text-ink-3">
                         いつかに
                       </button>
                     </span>
                   </li>
                 ))}
               </ul>
+              {notice && <p className="m-0 mt-1 text-xs text-ink-3">{notice}</p>}
             </section>
           )}
+
+          <SpeakReflect onKeep={appendToMemo} />
 
           <section>
             <label htmlFor="weekly-memo" className="mb-2 block text-xs tracking-[0.18em] text-ink-3">
