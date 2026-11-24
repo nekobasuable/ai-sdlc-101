@@ -29,6 +29,8 @@ export function useSpeech(onHeard: (heard: string) => void) {
   const [listening, setListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const recRef = useRef<Recognition | null>(null)
+  // 止めたあとに遅れて届く結果は捨てる(止めた直後に、手で直した文字や送った文字を上書きしないため。PR #9 のレビューの指摘)
+  const stoppedRef = useRef(true)
   const onHeardRef = useRef(onHeard)
   useEffect(() => {
     onHeardRef.current = onHeard
@@ -44,21 +46,31 @@ export function useSpeech(onHeard: (heard: string) => void) {
     rec.continuous = true
     rec.interimResults = true
     rec.onresult = (e) => {
+      if (stoppedRef.current) return
       const results: Result[] = Array.from(e.results, (r) => ({ transcript: r[0].transcript, isFinal: r.isFinal }))
       onHeardRef.current(heardText(results))
     }
     rec.onerror = (e) => {
+      // onerror のあとに onend が来ないブラウザもあるので、ここでも止まった扱いにする
+      stoppedRef.current = true
+      setListening(false)
       setError(e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'マイクが使えない。ブラウザの設定でマイクを許可すると、使えるようになる。' : 'うまく聞き取れなかった。')
     }
-    rec.onend = () => setListening(false)
+    rec.onend = () => {
+      stoppedRef.current = true
+      setListening(false)
+    }
     recRef.current = rec
+    stoppedRef.current = false
     setError(null)
     setListening(true)
     rec.start()
   }
 
   function stop() {
+    stoppedRef.current = true
     recRef.current?.stop()
+    setListening(false)
   }
 
   return { supported: Ctor !== null, listening, error, start, stop }

@@ -31,6 +31,8 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
   }
 
   async function arrange() {
+    // 下書きを出すとマイクのボタンが消えるので、先に聞き取りを止める(PR #9 のレビューの Nit)
+    if (speech.listening) speech.stop()
     if (!spoken.trim() || busy) return
     setBusy(true)
     const res = await draftReflection(spoken)
@@ -43,6 +45,7 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
   }
 
   async function keep(text: string, carry: string[]) {
+    if (speech.listening) speech.stop()
     setBusy(true)
     let memoDone = memoKept
     if (!memoDone && text) {
@@ -78,7 +81,11 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
         id="speak"
         rows={4}
         value={spoken}
-        onChange={(e) => setSpoken(e.target.value)}
+        onChange={(e) => {
+          // 手で直したら聞き取りを止め、直した文字を残す(PR #9 のレビューの Nit)
+          if (speech.listening) speech.stop()
+          setSpoken(e.target.value)
+        }}
         placeholder="思ったことを、そのまま"
         maxLength={MAX_INPUT}
         className="w-full resize-none border-b border-rule bg-transparent py-2 font-hand text-base leading-loose text-ink outline-none placeholder:text-ink-3"

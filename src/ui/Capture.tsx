@@ -4,7 +4,7 @@ import { joinSpoken } from '../domain/speech-text'
 import MicButton from './MicButton'
 import { useSpeech } from './useSpeech'
 
-// 放り込む(R1、R3)。下線だけの入力欄(スキル)。音声は OS の音声入力を使う(R2)
+// 放り込む(R1、R3)。下線だけの入力欄(スキル)。音声は、マイクのボタンか OS の音声入力で(R2、spec の変更 6)
 export default function Capture({ onAdded, onError, className = '' }: { onAdded: () => void; onError: (message: string) => void; className?: string }) {
   const [body, setBody] = useState('')
   const [saving, setSaving] = useState(false)
@@ -19,6 +19,8 @@ export default function Capture({ onAdded, onError, className = '' }: { onAdded:
 
   async function submit(e: FormEvent) {
     e.preventDefault()
+    // 聞き取りの途中に送っても、送った文字が戻ってこないよう、先に止める(PR #9 のレビューの指摘)
+    if (speech.listening) speech.stop()
     const text = body.trim()
     if (!text || saving) return
     setSaving(true)
@@ -43,7 +45,11 @@ export default function Capture({ onAdded, onError, className = '' }: { onAdded:
       <input
         id="capture"
         value={body}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={(e) => {
+          // 手で直したら聞き取りを止め、直した文字を残す
+          if (speech.listening) speech.stop()
+          setBody(e.target.value)
+        }}
         placeholder="ふと浮かんだことを"
         enterKeyHint="send"
         className="min-h-11 min-w-0 flex-1 bg-transparent py-3 font-hand text-base text-ink outline-none placeholder:text-ink-3"
