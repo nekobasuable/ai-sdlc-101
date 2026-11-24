@@ -1,0 +1,31 @@
+# AI の振る舞いの評価(plan/011、プレイブック Stage 4、spec N7)。
+# AI への指示や窓口、評価用の例を変えた PR でだけ動く(無料枠の回数の上限にかからないように)
+name: Evals
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - supabase/functions/_shared/reflect.ts
+      - supabase/functions/_shared/ai.ts
+      - evals/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reflect:
+    name: reflect evals
+    runs-on: ubuntu-latest
+    # 呼び直しと間隔があるので長めに。それでも詰まったら打ち切る(PR #8 のレビューの Nit)
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --experimental-strip-types evals/run-reflect.ts
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}

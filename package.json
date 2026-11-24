@@ -10,7 +10,8 @@
     "test": "vitest run",
     "preview": "vite preview",
     "test:db": "supabase test db",
-    "gen:types": "supabase gen types typescript --local > src/data/database.types.ts"
+    "gen:types": "supabase gen types typescript --local > src/data/database.types.ts",
+    "eval:reflect": "node --experimental-strip-types evals/run-reflect.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",
