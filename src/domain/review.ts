@@ -45,12 +45,16 @@ export function aboutHours(minutes: number): string {
   return `およそ${Math.max(1, Math.round(minutes / 60))}時間`
 }
 
-/** 手放したこと(R17): 「今日は手放した」か、結果のないまま過ぎたもの。完了した項目と重複は除く */
+/**
+ * 手放したこと(R17): 「今日は手放した」か、結果のないまま過ぎたもの。
+ * まだ選び直していない項目(状態が「候補」のまま)だけを出す。やることに戻したもの、いつかにしたもの、完了したものは出さない
+ * (PR #7 のレビューの指摘: 選び直しても一覧に残り続けていた)。重複は除く
+ */
 export function letGo<T extends ReviewEntry>(entries: readonly T[], grid: Cell[][]): T[] {
   const past = new Set(grid.flat().filter((c) => c.time === 'past').map((c) => `${c.day}/${c.block.id}`))
   const seen = new Set<string>()
   return entries.filter((e) => {
-    if (e.item.status === 'done' || seen.has(e.item.id)) return false
+    if (e.item.status !== 'candidate' || seen.has(e.item.id)) return false
     const dropped = e.result === 'not_done' || (e.result === null && past.has(`${e.day}/${e.blockId}`))
     if (dropped) seen.add(e.item.id)
     return dropped

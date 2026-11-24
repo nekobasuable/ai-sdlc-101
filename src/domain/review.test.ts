@@ -52,6 +52,15 @@ describe('letGo', () => {
     expect(letGo(entries, grid).map((e) => e.item.id)).toEqual(['dropped', 'passed'])
   })
 
+  it('選び直した項目(やることに戻した、いつかにした)は出さない', () => {
+    const entries = [
+      entry({ id: 'back', result: 'not_done', item: { id: 'back', status: 'inbox', area: null, quadrant: null } }),
+      entry({ id: 'later', result: null, day: 1, item: { id: 'later', status: 'someday', area: null, quadrant: null } }),
+      entry({ id: 'still', result: 'not_done' }),
+    ]
+    expect(letGo(entries, grid).map((e) => e.item.id)).toEqual(['still'])
+  })
+
   it('同じ項目は1度だけ', () => {
     expect(letGo([entry({ id: 'x', result: 'not_done' }), entry({ id: 'x', result: 'not_done', day: 1 })], grid)).toHaveLength(1)
   })

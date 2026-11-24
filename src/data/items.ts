@@ -156,7 +156,11 @@ export async function classifyItem(itemId: string, meta: { area: Area | null; qu
   return toResult(null, error)
 }
 
-/** その期間に完了になった項目(省みるの「ほかに終えたこと」に使う。配置の有無は呼ぶ側で見る) */
+/**
+ * その期間に完了になった項目(省みるの「ほかに終えたこと」に使う。配置の有無は呼ぶ側で見る)。
+ * 「完了した時刻」として updated_at を使う。updated_at は Google ToDo に関係する変更(完了かどうかを含む)のときだけ進む
+ * (マイグレーション 20261124040000)ので成り立つ。その条件を変えたら、ここも見直す(PR #7 のレビューの Nit)。
+ */
 export async function listCompletedBetween(start: Date, end: Date): Promise<DataResult<Item[]>> {
   if (!supabase) return NOT_CONFIGURED
   const { data, error } = await supabase

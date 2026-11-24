@@ -5,6 +5,7 @@ import { listDailyNotes, saveDailyNote } from '../data/notes'
 export default function DailyNote({ date }: { date: string }) {
   const [loaded, setLoaded] = useState<{ date: string; note: string } | null>(null)
   const [draft, setDraft] = useState<string | null>(null)
+  const [unsaved, setUnsaved] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -30,12 +31,16 @@ export default function DailyNote({ date }: { date: string }) {
         onBlur={() => {
           if (draft === null || draft === saved) return
           void saveDailyNote(date, draft).then((res) => {
-            if (res.ok) setLoaded({ date, note: draft.trim() })
+            // 残せたときだけ下書きを確定する。失敗したら書いたものを残す(PR #7 のレビューの指摘)
+            setUnsaved(!res.ok)
+            if (!res.ok) return
+            setLoaded({ date, note: draft.trim() })
             setDraft(null)
           })
         }}
         className="min-h-11 w-full border-b border-rule bg-transparent py-2 font-hand text-base text-ink outline-none"
       />
+      {unsaved && <p className="m-0 mt-1 text-xs text-ink-3">まだ残せていない。つながったら、もう一度ここを離れると残る。</p>}
     </section>
   )
 }

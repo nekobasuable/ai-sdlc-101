@@ -17,6 +17,7 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
   const [offset, setOffset] = useState(0) // 0 = 今週、-1 = 先週
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const [memoDraft, setMemoDraft] = useState<string | null>(null)
+  const [memoUnsaved, setMemoUnsaved] = useState(false)
   const [version, setVersion] = useState(0)
   const tz = settings.timeZone
   const weekStart = addDays(weekStartOf(now, tz), offset * 7)
@@ -155,10 +156,15 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
               onChange={(e) => setMemoDraft(e.target.value)}
               onBlur={() => {
                 if (memoDraft === null || memoDraft === data.memo) return
-                void saveWeeklyMemo(weekStart, memoDraft).then(() => setVersion((v) => v + 1))
+                // 残せたときだけ読み直す(読み直すと下書きが消えるため)。失敗したら書いたものを残す(PR #7 のレビューの指摘)
+                void saveWeeklyMemo(weekStart, memoDraft).then((res) => {
+                  setMemoUnsaved(!res.ok)
+                  if (res.ok) setVersion((v) => v + 1)
+                })
               }}
               className="w-full resize-none border-b border-rule bg-transparent py-2 font-hand text-base leading-loose text-ink outline-none"
             />
+            {memoUnsaved && <p className="m-0 mt-1 text-xs text-ink-3">まだ残せていない。つながったら、もう一度ここを離れると残る。</p>}
           </section>
         </>
       )}
