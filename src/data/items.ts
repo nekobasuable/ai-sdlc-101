@@ -4,6 +4,7 @@ import { weeksBetween } from '../domain/week-grid'
 import type { Database } from './database.types'
 import { failure, toResult, type DataResult } from './result'
 import { supabase } from './supabase'
+import type { CaptureFields } from '../domain/capture'
 
 type Tables = Database['public']['Tables']
 export type Source = 'ai' | 'user'
@@ -27,10 +28,17 @@ const ITEM_COLUMNS = 'id, body, status, area, quadrant, due_date, area_source, q
 
 const NOT_CONFIGURED = { ok: false, message: 'Supabase の設定がまだありません。' } as const
 
-/** 放り込む(R1、R3)。未分類のまま Inbox に入る */
-export async function addItem(body: string): Promise<DataResult<null>> {
+/** タスクの追加(R1、R3、R51)。未分類のまま Inbox に入る。締め切りとメモは任意(plan/025) */
+export async function addItem(fields: CaptureFields): Promise<DataResult<null>> {
   if (!supabase) return NOT_CONFIGURED
-  const { error } = await supabase.from('items').insert({ body })
+  const { error } = await supabase.from('items').insert({ body: fields.body, due_date: fields.dueDate, notes: fields.notes })
+  return toResult(null, error)
+}
+
+/** 締め切りを付ける、直す、外す(R7 補、plan/025)。次の同期で Google ToDo にも届く */
+export async function saveDueDate(itemId: string, dueDate: string | null): Promise<DataResult<null>> {
+  if (!supabase) return NOT_CONFIGURED
+  const { error } = await supabase.from('items').update({ due_date: dueDate }).eq('id', itemId)
   return toResult(null, error)
 }
 

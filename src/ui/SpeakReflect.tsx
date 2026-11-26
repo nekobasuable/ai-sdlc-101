@@ -75,7 +75,7 @@ export default function SpeakReflect({ onKeep, onMood }: { onKeep: (text: string
     const nowAdded = new Set(added)
     for (const c of carry) {
       if (nowAdded.has(c)) continue
-      const res = await addItem(c)
+      const res = await addItem({ body: c, dueDate: null, notes: null })
       if (res.ok) nowAdded.add(c)
     }
     setAdded(nowAdded)
