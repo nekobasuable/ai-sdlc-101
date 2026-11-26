@@ -153,7 +153,7 @@ function Day({
     <div className="flex gap-5">
       <div className={`w-11 shrink-0 font-mincho ${isPast ? 'text-ink-3' : isToday ? 'text-ink' : 'text-ink-2'}`}>
         <div className="text-xl">{Number(first.date.slice(8))}</div>
-        <div className="text-xs">{WEEKDAYS[first.day]}</div>
+        <div className="text-[13px]">{WEEKDAYS[first.day]}</div>
         {openBlocks.length > 0 && (
           <button
             type="button"
@@ -180,7 +180,7 @@ function Day({
           </span>
         ))}
         {entries.length === 0 && events.length === 0 && due.length === 0 && (
-          <span className="font-mincho text-sm tracking-[0.2em] text-ink-3">余白の一日</span>
+          <span className="font-mincho text-sm tracking-[0.1em] text-ink-3">余白の一日</span>
         )}
         {events
           .filter((e) => e.time !== null)
