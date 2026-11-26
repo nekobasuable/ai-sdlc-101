@@ -63,8 +63,14 @@ export function todayOf(now: Date, timeZone: string): string {
 
 /** start の日から7日がかかる暦の週(月曜の日付)。1つか2つ(plan/019、PR #16 のレビューの Nit) */
 export function weeksCovering(start: string): string[] {
-  const end = addDays(start, 6)
-  return [...new Set([addDays(start, -weekdayOf(start)), addDays(end, -weekdayOf(end))])]
+  return weeksBetween(start, addDays(start, 6))
+}
+
+/** start から end まで(両端を含む)がかかる暦の週(月曜の日付)。月のカレンダーにも使う(plan/021) */
+export function weeksBetween(start: string, end: string): string[] {
+  const weeks: string[] = []
+  for (let monday = addDays(start, -weekdayOf(start)); monday <= end; monday = addDays(monday, 7)) weeks.push(monday)
+  return weeks
 }
 
 /** 余白が少なめだと、やわらかく知らせる目安(R11)。止めはしない */

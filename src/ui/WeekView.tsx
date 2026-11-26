@@ -96,18 +96,18 @@ export default function WeekView({ settings, now, version: outer, onChanged }: {
         <div className="flex flex-col gap-8">
           {grid.map((day) => (
             <Reveal key={day[0].date}>
-            <Day
-              cells={day}
-              entries={entries.filter((e) => e.date === day[0].date)}
-              events={weekEvents.filter((e) => e.day === day[0].day)}
-              due={weekDue.filter((i) => i.dueDate === day[0].date)}
-              candidates={candidates}
-              drawing={drawing?.day === day[0].day ? drawing : null}
-              onDraw={(blockId) => setDrawing({ day: day[0].day, blockId })}
-              onClose={() => setDrawing(null)}
-              onPlace={(item, blockId) => run(placeNow(item.id, { weekStart: day[0].weekStart, day: day[0].weekday, blockId }))}
-              onUnplace={(entry) => run(unplace(entry))}
-            />
+              <Day
+                cells={day}
+                entries={entries.filter((e) => e.date === day[0].date)}
+                events={weekEvents.filter((e) => e.day === day[0].day)}
+                due={weekDue.filter((i) => i.dueDate === day[0].date)}
+                candidates={candidates}
+                drawing={drawing?.day === day[0].day ? drawing : null}
+                onDraw={(blockId) => setDrawing({ day: day[0].day, blockId })}
+                onClose={() => setDrawing(null)}
+                onPlace={(item, blockId) => run(placeNow(item.id, { weekStart: day[0].weekStart, day: day[0].weekday, blockId }))}
+                onUnplace={(entry) => run(unplace(entry))}
+              />
             </Reveal>
           ))}
         </div>

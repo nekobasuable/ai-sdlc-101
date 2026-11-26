@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { pickQuote, QUOTES, type Screen } from './quotes'
 
 const TZ = 'Asia/Tokyo'
-const SCREENS: readonly Screen[] = ['now', 'week', 'review']
+const SCREENS: readonly Screen[] = ['now', 'week', 'month', 'review']
 // 2026-11-26 から30日分の、各時間帯の真ん中の時刻(朝 8時、昼 14時、夕方 18時、夜 22時、東京)
 const HOURS = [8, 14, 18, 22]
 const instants = Array.from({ length: 30 }, (_, d) =>

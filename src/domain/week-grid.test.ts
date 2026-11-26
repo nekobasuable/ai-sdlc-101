@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addDays, weekStartOf } from './slot'
-import { cellKey, daysGrid, slackRatio, todayOf, weekdayOf, weekGrid, weeksCovering } from './week-grid'
+import { cellKey, daysGrid, slackRatio, todayOf, weekdayOf, weekGrid, weeksBetween, weeksCovering } from './week-grid'
 
 const TOKYO = 'Asia/Tokyo'
 // 2026-11-25(水)の東京の時刻を UTC の Date にする
@@ -105,5 +105,15 @@ describe('weeksCovering(7日がかかる暦の週)', () => {
   it('曜日は 0 = 月曜 〜 6 = 日曜', () => {
     expect(weekdayOf('2026-11-30')).toBe(0)
     expect(weekdayOf('2026-12-06')).toBe(6)
+  })
+})
+
+describe('weeksBetween(月のカレンダー、plan/021)', () => {
+  it('範囲がかかる暦の週を、月曜の日付で並べる', () => {
+    expect(weeksBetween('2026-11-01', '2026-11-30')).toEqual(['2026-10-26', '2026-11-02', '2026-11-09', '2026-11-16', '2026-11-23', '2026-11-30'])
+  })
+
+  it('1日だけの範囲は、その週だけ', () => {
+    expect(weeksBetween('2026-11-26', '2026-11-26')).toEqual(['2026-11-23'])
   })
 })

@@ -6,7 +6,7 @@ import { aboutHours, letGo, timeSpent } from '../domain/review'
 import { addDays, weekStartOf } from '../domain/slot'
 import { zonedMidnight } from '../domain/time'
 import { weekGrid } from '../domain/week-grid'
-import Owl, { type OwlMood } from './Owl'
+import type { OwlMood } from './Owl'
 import QuoteLine from './QuoteLine'
 import Reveal from './Reveal'
 import SpeakReflect from './SpeakReflect'
@@ -15,11 +15,10 @@ const WEEKDAYS = ['月', '火', '水', '木', '金', '土', '日']
 type Loaded = { weekStart: string; entries: WeekEntry[]; notes: Map<string, string>; memo: string; completed: Item[] }
 
 // 省みる(plan/007 段階 D、R15〜R17a)。数字より先に、やったことと一言を見せる(C2、R16)
-export default function ReviewView({ settings, now }: { settings: AppSettings; now: Date }) {
+/** onOwlMood: 話して省みる間の様子を、上のバーのふくろうに伝える(plan/021) */
+export default function ReviewView({ settings, now, onOwlMood }: { settings: AppSettings; now: Date; onOwlMood?: (mood: OwlMood) => void }) {
   const [offset, setOffset] = useState(0) // 0 = 今週、-1 = 先週
   const [loaded, setLoaded] = useState<Loaded | null>(null)
-  // 話して省みるに合わせた、ふくろうの様子(plan/013)
-  const [owlMood, setOwlMood] = useState<OwlMood>(null)
   const [memoDraft, setMemoDraft] = useState<string | null>(null)
   const [memoUnsaved, setMemoUnsaved] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
@@ -72,7 +71,6 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
 
   return (
     <section className="relative flex flex-col gap-12">
-      <Owl pose={owlMood ? 'watch' : 'read'} mood={owlMood} className="absolute -top-2 right-0" />
       <header>
         <h1 className="m-0 font-mincho text-[26px] font-normal tracking-[0.06em]">省みる</h1>
         <div className="mt-2 flex gap-5 font-hand text-[15px]">
@@ -123,27 +121,27 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
           )}
 
           <Reveal>
-          <section>
-            <h2 className="m-0 mb-3 label font-normal">時間の使い方</h2>
-            {spent.byQuadrant.length === 0 ? (
-              <p className="m-0 text-[15px] text-ink-3">まだ、数えるほどの時間はない。</p>
-            ) : (
-              <div className="flex flex-col gap-1 text-[15px] leading-relaxed text-ink-2">
-                {spent.byQuadrant.map((r) => (
-                  <span key={`q-${r.label}`}>
-                    {r.label}に、{aboutHours(r.minutes)}。
-                  </span>
-                ))}
-                <span className="mt-3" />
-                {spent.byArea.map((r) => (
-                  <span key={`a-${r.label}`}>
-                    {r.label}に、{aboutHours(r.minutes)}。
-                  </span>
-                ))}
-                <span className="mt-2 text-sm text-ink-3">終えた時間はそのまま、途中までは半分として数えている。</span>
-              </div>
-            )}
-          </section>
+            <section>
+              <h2 className="m-0 mb-3 label font-normal">時間の使い方</h2>
+              {spent.byQuadrant.length === 0 ? (
+                <p className="m-0 text-[15px] text-ink-3">まだ、数えるほどの時間はない。</p>
+              ) : (
+                <div className="flex flex-col gap-1 text-[15px] leading-relaxed text-ink-2">
+                  {spent.byQuadrant.map((r) => (
+                    <span key={`q-${r.label}`}>
+                      {r.label}に、{aboutHours(r.minutes)}。
+                    </span>
+                  ))}
+                  <span className="mt-3" />
+                  {spent.byArea.map((r) => (
+                    <span key={`a-${r.label}`}>
+                      {r.label}に、{aboutHours(r.minutes)}。
+                    </span>
+                  ))}
+                  <span className="mt-2 text-sm text-ink-3">終えた時間はそのまま、途中までは半分として数えている。</span>
+                </div>
+              )}
+            </section>
           </Reveal>
 
           {dropped.length > 0 && (
@@ -169,31 +167,31 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
           )}
 
           <Reveal>
-          <SpeakReflect key={weekStart} onKeep={appendToMemo} onMood={setOwlMood} />
+            <SpeakReflect key={weekStart} onKeep={appendToMemo} onMood={onOwlMood} />
           </Reveal>
 
           <Reveal>
-          <section>
-            <label htmlFor="weekly-memo" className="mb-2 block label">
-              この週のこと
-            </label>
-            <textarea
-              id="weekly-memo"
-              rows={4}
-              value={memoDraft ?? data.memo}
-              onChange={(e) => setMemoDraft(e.target.value)}
-              onBlur={() => {
-                if (memoDraft === null || memoDraft === data.memo) return
-                // 残せたときだけ読み直す(読み直すと下書きが消えるため)。失敗したら書いたものを残す(PR #7 のレビューの指摘)
-                void saveWeeklyMemo(weekStart, memoDraft).then((res) => {
-                  setMemoUnsaved(!res.ok)
-                  if (res.ok) setVersion((v) => v + 1)
-                })
-              }}
-              className="w-full resize-none border-b border-rule bg-transparent py-2 font-hand text-base leading-loose text-ink outline-none"
-            />
-            {memoUnsaved && <p className="m-0 mt-1 text-[13px] text-ink-3">まだ残せていない。つながったら、もう一度ここを離れると残る。</p>}
-          </section>
+            <section>
+              <label htmlFor="weekly-memo" className="mb-2 block label">
+                この週のこと
+              </label>
+              <textarea
+                id="weekly-memo"
+                rows={4}
+                value={memoDraft ?? data.memo}
+                onChange={(e) => setMemoDraft(e.target.value)}
+                onBlur={() => {
+                  if (memoDraft === null || memoDraft === data.memo) return
+                  // 残せたときだけ読み直す(読み直すと下書きが消えるため)。失敗したら書いたものを残す(PR #7 のレビューの指摘)
+                  void saveWeeklyMemo(weekStart, memoDraft).then((res) => {
+                    setMemoUnsaved(!res.ok)
+                    if (res.ok) setVersion((v) => v + 1)
+                  })
+                }}
+                className="w-full resize-none border-b border-rule bg-transparent py-2 font-hand text-base leading-loose text-ink outline-none"
+              />
+              {memoUnsaved && <p className="m-0 mt-1 text-[13px] text-ink-3">まだ残せていない。つながったら、もう一度ここを離れると残る。</p>}
+            </section>
           </Reveal>
         </>
       )}

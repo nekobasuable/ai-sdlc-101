@@ -17,7 +17,8 @@ import Capture from './Capture'
 import InboxList from './InboxList'
 import type { Classify } from './ItemMeta'
 import NowView from './NowView'
-import Owl from './Owl'
+import MonthView from './MonthView'
+import Owl, { type OwlMood } from './Owl'
 import Reveal from './Reveal'
 import Sky from './Sky'
 import { useScroll } from './useScroll'
@@ -46,6 +47,13 @@ export default function App() {
   return signedIn ? <Home /> : <SignIn />
 }
 
+type Tab = 'now' | 'week' | 'month' | 'review'
+const TABS: readonly [Tab, string][] = [
+  ['now', '今'],
+  ['week', '週'],
+  ['month', '月'],
+  ['review', '省みる'],
+]
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -58,7 +66,9 @@ function Home() {
   const [inbox, setInbox] = useState<Item[]>([])
   const [due, setDue] = useState<Item[]>([])
   const [message, setMessage] = useState<string | null>(null)
-  const [tab, setTab] = useState<'now' | 'week' | 'review'>('now')
+  const [tab, setTab] = useState<Tab>('now')
+  // 話して省みる間のふくろうの様子(plan/013)。ふくろうは上のバーにいるので、ここで持つ(plan/021)
+  const [owlMood, setOwlMood] = useState<OwlMood>(null)
   const scroll = useScroll()
   // 放り込んだ文字が「週」に着いた回数(着くたびに点を灯し直す)
   const [landed, setLanded] = useState(0)
@@ -162,38 +172,47 @@ function Home() {
   const nowEvents = todayEvents.filter((e) => e.blockId !== null && e.blockId === block?.id).map((e) => `${e.title}(${e.time})`)
   const allDay = todayEvents.filter((e) => e.time === null).map((e) => e.title)
   const rest = restOfDay(settings.blocks, block?.id ?? null, bodies)
-  const owl = owlFor(block, entries.length > 0, date)
+  const owl = owlFor(block, entries.length > 0)
 
   return (
     <div className="min-h-screen px-6 pt-7 pb-36 lg:px-18 lg:pt-9 lg:pb-12">
-      {/* 日付とタブは、スクロールしても上に残る。下へ送るときは控えめに隠れ、上へ戻すと現れる(spec R43 補、plan/020) */}
+      {/* 日付、ふくろう、タブのバーは、スクロールしても、どのページでも上に残る(spec R36 改、R43、plan/021) */}
       <div
-        className={`sticky top-0 z-40 -mx-6 -mt-7 bg-paper px-6 pt-4 transition-[transform,border-color] duration-300 lg:-mx-18 lg:-mt-9 lg:px-18 lg:pt-6 ${scroll.scrolled ? 'border-b border-rule-soft' : 'border-b border-transparent'} ${scroll.headerHidden ? '-translate-y-full' : ''}`}
+        className={`sticky top-0 z-40 -mx-6 -mt-7 bg-paper px-6 pt-3 transition-[border-color] duration-300 lg:-mx-18 lg:-mt-9 lg:px-18 lg:pt-4 ${scroll.scrolled ? 'border-b border-rule-soft' : 'border-b border-transparent'}`}
       >
-      <header className="mx-auto flex max-w-6xl items-baseline justify-between pt-3 lg:pt-3">
-        <span className="font-hand text-[15px] text-ink-3">
-          {p.month}月{p.day}日({WEEKDAYS[p.weekday]})
-        </span>
-        <nav className="flex gap-5 text-sm tracking-[0.08em]">
-          <button type="button" onClick={() => setTab('now')} className={`min-h-11 ${tab === 'now' ? 'text-ink' : 'text-ink-3'}`}>
-            今
-          </button>
-          {/* 放り込んだ文字の行き先(plan/013)。着いたら小さな点を灯す */}
-          <button type="button" data-fly-target onClick={() => setTab('week')} className={`relative min-h-11 ${tab === 'week' ? 'text-ink' : 'text-ink-3'}`}>
-            週
-            {landed > 0 && <span key={landed} aria-hidden="true" className="pulse-dot absolute top-2 -right-2 size-1 rounded-full bg-ink" />}
-          </button>
-          <button type="button" onClick={() => setTab('review')} className={`min-h-11 ${tab === 'review' ? 'text-ink' : 'text-ink-3'}`}>
-            省みる
-          </button>
-        </nav>
-      </header>
+        <header className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+          <span className="font-hand text-[15px] text-ink-3">
+            <span className="hidden sm:inline">{p.month}月</span>
+            {p.day}日({WEEKDAYS[p.weekday]})
+          </span>
+          <Owl pose={tab === 'review' && owlMood ? 'watch' : owl.pose} mood={tab === 'review' ? owlMood : null} nudge={owlNudge} small />
+          <nav className="flex gap-4 text-sm tracking-[0.08em] sm:gap-5">
+            {TABS.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                {...(id === 'week' ? { 'data-fly-target': true } : {})}
+                onClick={() => setTab(id)}
+                className={`relative min-h-11 ${tab === id ? 'text-ink' : 'text-ink-3'}`}
+              >
+                {label}
+                {/* 放り込んだ文字の行き先(plan/013)。着いたら小さな点を灯す */}
+                {id === 'week' && landed > 0 && <span key={landed} aria-hidden="true" className="pulse-dot absolute top-2 -right-2 size-1 rounded-full bg-ink" />}
+              </button>
+            ))}
+          </nav>
+        </header>
       </div>
 
       {tab === 'review' ? (
         <div className="mx-auto mt-10 max-w-2xl">
-          <ReviewView settings={settings} now={now} />
+          <ReviewView settings={settings} now={now} onOwlMood={setOwlMood} />
           {captureBar('lg:static lg:mt-12 lg:px-0 lg:pb-0')}
+        </div>
+      ) : tab === 'month' ? (
+        <div className="mx-auto mt-10 max-w-6xl">
+          <MonthView settings={settings} now={now} version={version} />
+          <div className="mx-auto max-w-2xl">{captureBar('lg:static lg:mt-12 lg:px-0 lg:pb-0')}</div>
         </div>
       ) : tab === 'week' ? (
         <div className="mx-auto mt-10 max-w-2xl">
@@ -207,8 +226,6 @@ function Home() {
             <NowView
               block={block}
               entries={entries}
-              owl={owl.spot === 'heading' ? owl.pose : null}
-              owlNudge={owlNudge}
               events={nowEvents}
               onResult={(entry, result) => run(setResult(entry, result))}
               onUnplace={(entry) => run(unplace(entry))}
@@ -220,7 +237,6 @@ function Home() {
             {message && <p className="m-0 text-sm text-ink-3">{message}</p>}
             <Reveal className="relative hidden lg:block">
               <QuoteLine screen="now" now={now} timeZone={tz} />
-              {owl.spot === 'corner' && <Owl pose={owl.pose} nudge={owlNudge} className="absolute -top-16 right-0" />}
             </Reveal>
           </main>
 
@@ -237,7 +253,6 @@ function Home() {
                 {rest.planned.length === 0 && rest.free.length === 0 && <span className="text-ink-3">今日は、これでおしまい。</span>}
                 {allDay.length > 0 && <span className="text-ink-3">今日は一日、{allDay.join('、')}。</span>}
               </div>
-              {owl.spot === 'aside' && <Owl pose={owl.pose} nudge={owlNudge} className="absolute -top-14 right-0" />}
             </section>
 
             <Reveal>
@@ -250,7 +265,6 @@ function Home() {
 
             <Reveal className="relative lg:hidden">
               <QuoteLine screen="now" now={now} timeZone={tz} />
-              {owl.spot === 'corner' && <Owl pose={owl.pose} nudge={owlNudge} className="absolute -top-16 right-0" />}
             </Reveal>
 
             {captureBar('lg:static lg:px-0 lg:pb-0')}
