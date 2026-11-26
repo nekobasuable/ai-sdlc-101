@@ -8,6 +8,7 @@ import { zonedMidnight } from '../domain/time'
 import { weekGrid } from '../domain/week-grid'
 import Owl, { type OwlMood } from './Owl'
 import QuoteLine from './QuoteLine'
+import Reveal from './Reveal'
 import SpeakReflect from './SpeakReflect'
 
 const WEEKDAYS = ['月', '火', '水', '木', '金', '土', '日']
@@ -121,6 +122,7 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
             </section>
           )}
 
+          <Reveal>
           <section>
             <h2 className="m-0 mb-3 label font-normal">時間の使い方</h2>
             {spent.byQuadrant.length === 0 ? (
@@ -142,6 +144,7 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
               </div>
             )}
           </section>
+          </Reveal>
 
           {dropped.length > 0 && (
             <section>
@@ -165,8 +168,11 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
             </section>
           )}
 
+          <Reveal>
           <SpeakReflect key={weekStart} onKeep={appendToMemo} onMood={setOwlMood} />
+          </Reveal>
 
+          <Reveal>
           <section>
             <label htmlFor="weekly-memo" className="mb-2 block label">
               この週のこと
@@ -188,6 +194,7 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
             />
             {memoUnsaved && <p className="m-0 mt-1 text-[13px] text-ink-3">まだ残せていない。つながったら、もう一度ここを離れると残る。</p>}
           </section>
+          </Reveal>
         </>
       )}
 

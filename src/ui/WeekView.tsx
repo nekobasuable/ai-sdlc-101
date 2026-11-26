@@ -8,6 +8,7 @@ import { addDays } from '../domain/slot'
 import { zonedMidnight } from '../domain/time'
 import { cellKey, daysGrid, LOW_SLACK, slackRatio, todayOf, type Cell } from '../domain/week-grid'
 import QuoteLine from './QuoteLine'
+import Reveal from './Reveal'
 
 const WEEKDAYS = ['月', '火', '水', '木', '金', '土', '日']
 const RESULT_LABEL: Record<string, string> = { done: '終えた', partial: '途中まで', not_done: '手放した' }
@@ -94,8 +95,8 @@ export default function WeekView({ settings, now, version: outer, onChanged }: {
       ) : (
         <div className="flex flex-col gap-8">
           {grid.map((day) => (
+            <Reveal key={day[0].date}>
             <Day
-              key={day[0].date}
               cells={day}
               entries={entries.filter((e) => e.date === day[0].date)}
               events={weekEvents.filter((e) => e.day === day[0].day)}
@@ -107,6 +108,7 @@ export default function WeekView({ settings, now, version: outer, onChanged }: {
               onPlace={(item, blockId) => run(placeNow(item.id, { weekStart: day[0].weekStart, day: day[0].weekday, blockId }))}
               onUnplace={(entry) => run(unplace(entry))}
             />
+            </Reveal>
           ))}
         </div>
       )}

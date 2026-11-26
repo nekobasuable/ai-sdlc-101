@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addDays, weekStartOf } from './slot'
-import { cellKey, daysGrid, slackRatio, todayOf, weekGrid } from './week-grid'
+import { cellKey, daysGrid, slackRatio, todayOf, weekdayOf, weekGrid, weeksCovering } from './week-grid'
 
 const TOKYO = 'Asia/Tokyo'
 // 2026-11-25(水)の東京の時刻を UTC の Date にする
@@ -85,5 +85,25 @@ describe('daysGrid(今日から7日、plan/019)', () => {
     const instant = new Date('2026-11-26T20:00:00Z')
     expect(todayOf(instant, 'Asia/Tokyo')).toBe('2026-11-27')
     expect(todayOf(instant, 'America/Los_Angeles')).toBe('2026-11-26')
+  })
+})
+
+describe('weeksCovering(7日がかかる暦の週)', () => {
+  it('月曜から始まる7日は、1つの週', () => {
+    expect(weeksCovering('2026-11-30')).toEqual(['2026-11-30'])
+  })
+
+  it('月曜以外から始まる7日は、2つの週(日曜と月曜の境目)', () => {
+    expect(weeksCovering('2026-11-27')).toEqual(['2026-11-23', '2026-11-30'])
+    expect(weeksCovering('2026-12-06')).toEqual(['2026-11-30', '2026-12-07'])
+  })
+
+  it('年をまたいでも数えられる', () => {
+    expect(weeksCovering('2026-12-30')).toEqual(['2026-12-28', '2027-01-04'])
+  })
+
+  it('曜日は 0 = 月曜 〜 6 = 日曜', () => {
+    expect(weekdayOf('2026-11-30')).toBe(0)
+    expect(weekdayOf('2026-12-06')).toBe(6)
   })
 })

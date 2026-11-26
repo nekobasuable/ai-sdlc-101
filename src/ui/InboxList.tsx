@@ -4,6 +4,7 @@ import { shortDate, sortForList } from '../domain/due'
 import { previewList } from '../domain/list-preview'
 import { AREAS } from '../domain/areas'
 import ItemMeta, { type Classify } from './ItemMeta'
+import ListMark from './ListMark'
 
 // やること(Inbox、spec 変更 4 で名前を変更)。最初から開いて見せ、見出しを押すと閉じられる(spec R13 改、plan/015)。
 // 閉じたかどうかはこの端末で覚える。一覧が「こなすべき全て」に見えないよう、多いときは最初の数件だけ見せる(P1)
@@ -42,18 +43,20 @@ export default function InboxList({ items, canPlace, onPlace, onClassify }: { it
         やること　{items.length}
       </button>
       {open && (
-        <ul className="m-0 mt-1 flex list-none flex-col gap-1 p-0">
+        <ul className="m-0 mt-1 flex list-none flex-col p-0">
           {items.length === 0 && <li className="text-sm text-ink-3">いまは、何もない。</li>}
           {shown.map((item) => (
-            <li key={item.id}>
-              <div className="flex items-baseline justify-between gap-4 text-base leading-relaxed text-ink">
-                <button type="button" aria-expanded={editing === item.id} onClick={() => setEditing(editing === item.id ? null : item.id)} className="min-h-11 text-left">
+            <li key={item.id} className="border-b border-rule-soft last:border-b-0">
+              {/* 箇条書き: 頭に小さな墨の印、行のあいだに薄い罫線(spec R47、plan/020) */}
+              <div className="flex items-start gap-3 text-base leading-relaxed text-ink">
+                <ListMark />
+                <button type="button" aria-expanded={editing === item.id} onClick={() => setEditing(editing === item.id ? null : item.id)} className="min-h-11 flex-1 py-2 text-left">
                   {item.body}
                   {item.dueDate && <span className="font-hand text-sm text-ink-3">　{shortDate(item.dueDate)}</span>}
                   {item.area && <AreaMark item={item} />}
                 </button>
                 {canPlace && (
-                  <button type="button" onClick={() => onPlace(item)} className="min-h-11 shrink-0 font-hand text-sm text-ink-3">
+                  <button type="button" onClick={() => onPlace(item)} className="min-h-11 shrink-0 py-2 font-hand text-sm text-ink-3">
                     今やる
                   </button>
                 )}
