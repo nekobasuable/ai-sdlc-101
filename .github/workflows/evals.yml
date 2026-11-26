@@ -8,7 +8,8 @@ on:
     paths:
       - supabase/functions/_shared/reflect.ts
       - supabase/functions/_shared/ai.ts
-      - evals/**
+      - evals/reflect/**
+      - evals/run-reflect.ts
   workflow_dispatch:
 
 permissions:

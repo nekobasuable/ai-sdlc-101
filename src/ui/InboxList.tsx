@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Item } from '../data/items'
 import { shortDate, sortForList } from '../domain/due'
 import { previewList } from '../domain/list-preview'
+import { AREAS } from '../domain/areas'
 import ItemMeta, { type Classify } from './ItemMeta'
 
 // やること(Inbox、spec 変更 4 で名前を変更)。最初から開いて見せ、見出しを押すと閉じられる(spec R13 改、plan/015)。
@@ -47,6 +48,7 @@ export default function InboxList({ items, canPlace, onPlace, onClassify }: { it
                 <button type="button" aria-expanded={editing === item.id} onClick={() => setEditing(editing === item.id ? null : item.id)} className="min-h-11 text-left">
                   {item.body}
                   {item.dueDate && <span className="font-hand text-sm text-ink-3">　{shortDate(item.dueDate)}</span>}
+                  {item.area && <AreaMark item={item} />}
                 </button>
                 {canPlace && (
                   <button type="button" onClick={() => onPlace(item)} className="min-h-11 shrink-0 font-hand text-sm text-ink-3">
@@ -68,4 +70,11 @@ export default function InboxList({ items, canPlace, onPlace, onClassify }: { it
       )}
     </section>
   )
+}
+
+/** 領域を小さく添える。AI の見立てなら点線で薄く(plan/017) */
+function AreaMark({ item }: { item: Item }) {
+  const label = AREAS.find((a) => a.id === item.area)?.label
+  const style = item.areaSource === 'ai' ? 'text-ink-3 underline decoration-dotted underline-offset-4' : 'text-ink-2'
+  return <span className={`ml-3 text-[13px] ${style}`}>{label}</span>
 }

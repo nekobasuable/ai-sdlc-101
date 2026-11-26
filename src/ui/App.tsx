@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { classifyItem, completeItem, listDue, listInbox, listNow, listWeek, placeNow, setResult, unplace, type Item, type NowEntry, type WeekEntry } from '../data/items'
 import { ensureSettings, type AppSettings } from '../data/settings'
 import { signInWithGoogle, signOut, supabase } from '../data/supabase'
+import { suggestClassifications } from '../data/classify'
 import { RECONNECT } from '../data/sync'
 import { fetchEvents } from '../data/calendar'
 import { currentBlock } from '../domain/blocks'
@@ -113,7 +114,14 @@ function Home() {
   // 放り込む欄は、どのタブにも置く(spec R1。PR #3 のレビューの指摘)。スマホは画面の下に固定、PC は流れの中に置く
   const captureBar = (desktop: string) => (
     <div className={`fixed inset-x-0 bottom-0 bg-paper px-6 pb-[max(1rem,env(safe-area-inset-bottom))] ${desktop}`}>
-      <Capture onAdded={reload} onError={setMessage} />
+      <Capture
+        onAdded={() => {
+          reload()
+          // 放り込んだものに、AI の見立てを付けてもらう(plan/017)。付いたら読み直す
+          void suggestClassifications().then((n) => n > 0 && reload())
+        }}
+        onError={setMessage}
+      />
     </div>
   )
 
