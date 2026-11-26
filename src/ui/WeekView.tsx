@@ -114,7 +114,7 @@ export default function WeekView({ settings, now, version: outer, onChanged }: {
         <p className="m-0 text-[13px] text-ink-3">
           余白、およそ{Math.round(slack * 10)}割。{slack < LOW_SLACK && '少しだけ、詰まりぎみ。'}
         </p>
-        <QuoteLine scene="week" date={weekStart} />
+        <QuoteLine screen="week" now={now} timeZone={settings.timeZone} />
       </footer>
     </section>
   )

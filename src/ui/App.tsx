@@ -126,7 +126,6 @@ function Home() {
   const allDay = todayEvents.filter((e) => e.time === null).map((e) => e.title)
   const rest = restOfDay(settings.blocks, block?.id ?? null, bodies)
   const owl = owlFor(block, entries.length > 0, date)
-  const scene = !block || block.id === 'night' ? 'night' : 'day'
 
   return (
     <div className="min-h-screen px-6 pt-7 pb-36 lg:px-18 lg:pt-9 lg:pb-12">
@@ -172,7 +171,7 @@ function Home() {
             <TodayDue {...dueByToday(due, date)} onComplete={(item) => run(completeItem(item.id))} onClassify={classify} />
             {message && <p className="m-0 text-sm text-ink-3">{message}</p>}
             <div className="relative hidden lg:block">
-              <QuoteLine scene={scene} date={date} />
+              <QuoteLine screen="now" now={now} timeZone={tz} />
               {owl.spot === 'corner' && <Owl pose={owl.pose} className="absolute -top-16 right-0" />}
             </div>
           </main>
@@ -198,7 +197,7 @@ function Home() {
             <InboxList items={inbox} canPlace={slot !== null} onPlace={(item) => slot && run(placeNow(item.id, slot))} onClassify={classify} />
 
             <div className="relative lg:hidden">
-              <QuoteLine scene={scene} date={date} />
+              <QuoteLine screen="now" now={now} timeZone={tz} />
               {owl.spot === 'corner' && <Owl pose={owl.pose} className="absolute -top-16 right-0" />}
             </div>
 

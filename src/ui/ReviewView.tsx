@@ -189,7 +189,7 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
         </>
       )}
 
-      <QuoteLine scene="week" date={weekStart} />
+      <QuoteLine screen="review" now={now} timeZone={tz} />
     </section>
   )
 }
