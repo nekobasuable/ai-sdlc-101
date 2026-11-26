@@ -13,15 +13,19 @@ const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/tasks',
 ].join(' ')
 
-export async function signInWithGoogle(): Promise<void> {
+/**
+ * @param consent Google の許可画面を出すか。ふだんは出さない(長期の鍵はサーバーに保管済み)。
+ *   つながりが切れたときだけ出して、長期の鍵を受け取り直す(spec R45、plan/015)
+ */
+export async function signInWithGoogle({ consent = false }: { consent?: boolean } = {}): Promise<void> {
   if (!supabase) return
   await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
       scopes: GOOGLE_SCOPES,
       redirectTo: window.location.origin + import.meta.env.BASE_URL,
-      // Google の長期の鍵(provider refresh token)を受け取るため
-      queryParams: { access_type: 'offline', prompt: 'consent' },
+      // Google の長期の鍵(provider refresh token)は、許可画面を出したときに受け取る
+      queryParams: consent ? { access_type: 'offline', prompt: 'consent' } : { access_type: 'offline' },
     },
   })
 }

@@ -4,8 +4,8 @@ import { supabase } from './supabase'
 
 export type SyncSummary = { applied: number; failed: number; busy?: boolean }
 
-/** Google とのつながりが切れていて、ログインし直す必要がある */
-export const RECONNECT = 'Google とのつながりが切れています。ログアウトして、もう一度開くと戻ります。'
+/** Google とのつながりが切れていて、許可を求めてつなぎ直す必要がある(plan/015) */
+export const RECONNECT = 'Google とのつながりが切れている。つなぎ直すと戻る。'
 
 async function callGoogleTasks<T>(action: 'sync'): Promise<DataResult<T>> {
   if (!supabase) return { ok: false, message: 'Supabase の設定がまだありません。' }

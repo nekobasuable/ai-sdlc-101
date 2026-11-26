@@ -21,7 +21,7 @@ export default function TodayDue({
   if (today.length === 0 && overdue.length === 0) return null
   return (
     <section>
-      <h2 className="m-0 mb-2 text-xs font-normal tracking-[0.18em] text-ink-3">今日までのこと</h2>
+      <h2 className="m-0 mb-2 text-[13px] font-normal tracking-[0.18em] text-ink-2">今日までのこと</h2>
       <ul className="m-0 flex list-none flex-col p-0">
         {[...overdue, ...today].map((item) => (
           <li key={item.id}>
@@ -31,7 +31,7 @@ export default function TodayDue({
                 type="button"
                 aria-expanded={editing === item.id}
                 onClick={() => setEditing(editing === item.id ? null : item.id)}
-                className="min-h-11 text-left text-[15px] leading-relaxed text-ink-2"
+                className="min-h-11 text-left text-base leading-relaxed text-ink"
               >
                 {item.body}
                 {item.dueDate && overdue.includes(item) && <span className="font-hand text-sm text-ink-3">　{shortDate(item.dueDate)} まで</span>}
