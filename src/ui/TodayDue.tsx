@@ -2,7 +2,7 @@ import type { Item } from '../data/items'
 import { shortDate } from '../domain/due'
 import { useState } from 'react'
 import HandCircle from './HandCircle'
-import ItemMeta, { type Classify } from './ItemMeta'
+import ItemDetail from './ItemDetail'
 
 // 今日までのこと(spec R38)。締め切りが今日のものと、過ぎていてまだ終えていないもの。
 // 過ぎたものには日付を添えるだけで、警告の色や口調にはしない(R16、R23)。今やることより小さく、下に置く(P7)
@@ -10,12 +10,10 @@ export default function TodayDue({
   today,
   overdue,
   onComplete,
-  onClassify,
 }: {
   today: Item[]
   overdue: Item[]
   onComplete: (item: Item) => void | Promise<boolean>
-  onClassify: Classify
 }) {
   const [editing, setEditing] = useState<string | null>(null)
   if (today.length === 0 && overdue.length === 0) return null
@@ -37,7 +35,7 @@ export default function TodayDue({
                 {item.dueDate && overdue.includes(item) && <span className="font-hand text-sm text-ink-3">　{shortDate(item.dueDate)} まで</span>}
               </button>
             </div>
-            {editing === item.id && <div className="ml-12"><ItemMeta item={item} onClassify={onClassify} /></div>}
+            {editing === item.id && <div className="ml-12"><ItemDetail item={item} /></div>}
           </li>
         ))}
       </ul>

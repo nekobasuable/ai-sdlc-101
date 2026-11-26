@@ -1,7 +1,7 @@
 -- plan/003 の証明: 本人の行だけを読み書きできる(spec N6)
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(30);
+select plan(33);
 
 -- public スキーマに、RLS が無効なテーブルが1つもない
 select is_empty(
@@ -119,6 +119,19 @@ select is((select area from public.items where id = '11111111-1111-1111-1111-111
 select throws_ok(
   $$ update public.items set area = repeat('x', 41) where id = '11111111-1111-1111-1111-111111111111' $$,
   '23514', null, '柱の id は40文字まで'
+);
+
+-- やることの詳細(plan/022 C)。メモは Google ToDo に送るので updated_at を進め、最初の一歩は送らないので進めない
+alter table public.items disable trigger set_updated_at;
+update public.items set updated_at = '2000-01-01' where id = '11111111-1111-1111-1111-111111111111';
+alter table public.items enable trigger set_updated_at;
+update public.items set first_step = '目次を書く' where id = '11111111-1111-1111-1111-111111111111';
+select ok((select updated_at = '2000-01-01'::timestamptz from public.items where id = '11111111-1111-1111-1111-111111111111'), '最初の一歩では updated_at が進まない');
+update public.items set notes = '第3章まで' where id = '11111111-1111-1111-1111-111111111111';
+select ok((select updated_at > '2000-01-01'::timestamptz from public.items where id = '11111111-1111-1111-1111-111111111111'), 'メモの変更では updated_at が進む');
+select throws_ok(
+  $$ update public.items set first_step = repeat('あ', 81) where id = '11111111-1111-1111-1111-111111111111' $$,
+  '23514', null, '最初の一歩は80文字まで'
 );
 
 select * from finish();

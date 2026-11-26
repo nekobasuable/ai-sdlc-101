@@ -45,12 +45,13 @@ async function fetchLists(accessToken: string): Promise<{ id: string; title: str
   return (body.items ?? []).map((l: { id: string; title: string }) => ({ id: l.id, title: l.title }))
 }
 
-type GoogleTask = { id: string; title?: string; due?: string; status?: string; deleted?: boolean; updated: string }
+type GoogleTask = { id: string; title?: string; notes?: string; due?: string; status?: string; deleted?: boolean; updated: string }
 
 const toRemote = (listId: string, t: GoogleTask): RemoteTask => ({
   id: t.id,
   listId,
   title: t.title ?? '',
+  notes: t.notes ?? null,
   due: t.due ? t.due.slice(0, 10) : null,
   completed: t.status === 'completed',
   deleted: Boolean(t.deleted),
@@ -76,6 +77,8 @@ async function fetchTasks(accessToken: string, listId: string): Promise<RemoteTa
  */
 const toGoogle = (item: LocalItem) => ({
   title: item.body,
+  // メモは Google ToDo の「詳細」に(plan/022 C)。空にしたら消す
+  notes: item.notes ?? '',
   due: item.dueDate ? `${item.dueDate}T00:00:00.000Z` : null,
   status: item.status === 'done' ? 'completed' : 'needsAction',
 })
@@ -125,12 +128,13 @@ async function runSyncLocked(admin: SupabaseClient, userId: string, accessToken:
 
   const { data: itemRows, error } = await admin
     .from('items')
-    .select('id, body, area, due_date, status, google_task_id, google_list_id, google_updated_at, updated_at, synced_at, deleted_at')
+    .select('id, body, notes, area, due_date, status, google_task_id, google_list_id, google_updated_at, updated_at, synced_at, deleted_at')
     .eq('user_id', userId)
   if (error) throw new Error(error.message)
   const items: LocalItem[] = (itemRows ?? []).map((r) => ({
     id: r.id,
     body: r.body,
+    notes: r.notes,
     area: r.area,
     dueDate: r.due_date,
     status: r.status,
@@ -170,6 +174,7 @@ async function apply(admin: SupabaseClient, userId: string, accessToken: string,
         await items.insert({
           user_id: userId,
           body: op.task.title,
+          notes: op.task.notes,
           area: op.area,
           due_date: op.task.due,
           status: 'inbox',
@@ -184,6 +189,7 @@ async function apply(admin: SupabaseClient, userId: string, accessToken: string,
         await items
           .update({
             body: op.task.title,
+            notes: op.task.notes,
             due_date: op.task.due,
             status: statusFromTask(op.task, op.item.status),
             google_updated_at: op.task.updated,

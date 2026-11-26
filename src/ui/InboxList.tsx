@@ -4,7 +4,7 @@ import { shortDate, sortForList } from '../domain/due'
 import { previewList } from '../domain/list-preview'
 import { pillarLabel } from '../domain/pillars'
 import { groupByQuadrant, QUADRANT_NAMES, type Quadrant } from '../domain/quadrant'
-import ItemMeta, { type Classify } from './ItemMeta'
+import ItemDetail from './ItemDetail'
 import ListMark from './ListMark'
 import { usePillars } from './pillars-context'
 
@@ -31,7 +31,7 @@ function write(key: string, value: string): void {
   }
 }
 
-export default function InboxList({ items, canPlace, onPlace, onClassify }: { items: Item[]; canPlace: boolean; onPlace: (item: Item) => void; onClassify: Classify }) {
+export default function InboxList({ items, canPlace, onPlace }: { items: Item[]; canPlace: boolean; onPlace: (item: Item) => void }) {
   const [open, setOpen] = useState(() => read(OPEN_KEY, 'true') !== 'false')
   const [view, setView] = useState<View>(() => (read(VIEW_KEY, 'list') === 'quadrants' ? 'quadrants' : 'list'))
   const [showAll, setShowAll] = useState(false)
@@ -49,12 +49,12 @@ export default function InboxList({ items, canPlace, onPlace, onClassify }: { it
     setView(next)
   }
   const row = (item: Item) => (
-    <Row key={item.id} item={item} editing={editing === item.id} onEdit={() => setEditing(editing === item.id ? null : item.id)} canPlace={canPlace} onPlace={onPlace} onClassify={onClassify} />
+    <Row key={item.id} item={item} editing={editing === item.id} onEdit={() => setEditing(editing === item.id ? null : item.id)} canPlace={canPlace} onPlace={onPlace} />
   )
 
   return (
     <section>
-      <div className="flex items-baseline justify-between gap-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4">
         <button type="button" onClick={toggle} aria-expanded={open} className="min-h-11 label">
           やること　{items.length}
         </button>
@@ -113,21 +113,19 @@ function Quadrants({ items, row }: { items: Item[]; row: (item: Item) => React.R
   )
 }
 
-/** やることの1行。押すと仕分けの欄が開く(局面もここで移せる) */
+/** やることの1行。押すと詳細が開く(局面もそこで移せる。plan/022 C) */
 function Row({
   item,
   editing,
   onEdit,
   canPlace,
   onPlace,
-  onClassify,
 }: {
   item: Item
   editing: boolean
   onEdit: () => void
   canPlace: boolean
   onPlace: (item: Item) => void
-  onClassify: Classify
 }) {
   return (
     <li className="border-b border-rule-soft last:border-b-0">
@@ -146,7 +144,7 @@ function Row({
           </button>
         )}
       </div>
-      {editing && <ItemMeta item={item} onClassify={onClassify} />}
+      {editing && <ItemDetail item={item} />}
     </li>
   )
 }

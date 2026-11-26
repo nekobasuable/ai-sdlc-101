@@ -8,6 +8,8 @@ export type Area = string
 export type LocalItem = {
   id: string
   body: string
+  /** メモ(Google ToDo の「詳細」。plan/022 C) */
+  notes: string | null
   area: Area | null
   dueDate: string | null // YYYY-MM-DD
   status: 'inbox' | 'candidate' | 'someday' | 'done'
@@ -24,6 +26,8 @@ export type RemoteTask = {
   id: string
   listId: string
   title: string
+  /** 詳細(メモ) */
+  notes: string | null
   due: string | null // YYYY-MM-DD
   completed: boolean
   deleted: boolean

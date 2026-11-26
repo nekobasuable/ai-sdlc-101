@@ -53,14 +53,14 @@ export type Database = {
                   ]
                 },"items": {
                   Row: {
-                    "ai_reason": string | null,"ai_tried_at": string | null,"area": string | null,"area_source": string | null,"body": string,"created_at": string,"deleted_at": string | null,"due_date": string | null,"google_list_id": string | null,"google_task_id": string | null,"google_updated_at": string | null,"id": string,"quadrant": number | null,"quadrant_source": string | null,"status": string,"synced_at": string | null,"updated_at": string,"user_id": string
+                    "ai_reason": string | null,"ai_tried_at": string | null,"area": string | null,"area_source": string | null,"body": string,"created_at": string,"deleted_at": string | null,"due_date": string | null,"first_step": string | null,"google_list_id": string | null,"google_task_id": string | null,"google_updated_at": string | null,"id": string,"notes": string | null,"quadrant": number | null,"quadrant_source": string | null,"status": string,"synced_at": string | null,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "ai_reason"?: string | null,"ai_tried_at"?: string | null,"area"?: string | null,"area_source"?: string | null,"body": string,"created_at"?: string,"deleted_at"?: string | null,"due_date"?: string | null,"google_list_id"?: string | null,"google_task_id"?: string | null,"google_updated_at"?: string | null,"id"?: string,"quadrant"?: number | null,"quadrant_source"?: string | null,"status"?: string,"synced_at"?: string | null,"updated_at"?: string,"user_id"?: string
+                    "ai_reason"?: string | null,"ai_tried_at"?: string | null,"area"?: string | null,"area_source"?: string | null,"body": string,"created_at"?: string,"deleted_at"?: string | null,"due_date"?: string | null,"first_step"?: string | null,"google_list_id"?: string | null,"google_task_id"?: string | null,"google_updated_at"?: string | null,"id"?: string,"notes"?: string | null,"quadrant"?: number | null,"quadrant_source"?: string | null,"status"?: string,"synced_at"?: string | null,"updated_at"?: string,"user_id"?: string
                   }
                   Update: {
-                    "ai_reason"?: string | null,"ai_tried_at"?: string | null,"area"?: string | null,"area_source"?: string | null,"body"?: string,"created_at"?: string,"deleted_at"?: string | null,"due_date"?: string | null,"google_list_id"?: string | null,"google_task_id"?: string | null,"google_updated_at"?: string | null,"id"?: string,"quadrant"?: number | null,"quadrant_source"?: string | null,"status"?: string,"synced_at"?: string | null,"updated_at"?: string,"user_id"?: string
+                    "ai_reason"?: string | null,"ai_tried_at"?: string | null,"area"?: string | null,"area_source"?: string | null,"body"?: string,"created_at"?: string,"deleted_at"?: string | null,"due_date"?: string | null,"first_step"?: string | null,"google_list_id"?: string | null,"google_task_id"?: string | null,"google_updated_at"?: string | null,"id"?: string,"notes"?: string | null,"quadrant"?: number | null,"quadrant_source"?: string | null,"status"?: string,"synced_at"?: string | null,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     

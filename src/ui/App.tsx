@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { classifyItem, completeItem, listDue, listInbox, listNow, listWeek, placeNow, setResult, unplace, type Item, type NowEntry, type WeekEntry } from '../data/items'
+import { classifyItem, completeItem, reconsider, listDue, listInbox, listNow, listWeek, placeNow, setResult, unplace, type Item, type NowEntry, type WeekEntry } from '../data/items'
 import { ensureSettings, type AppSettings } from '../data/settings'
 import { signInWithGoogle, signOut, supabase } from '../data/supabase'
 import { suggestClassifications } from '../data/classify'
@@ -21,6 +21,7 @@ import MonthView from './MonthView'
 import Owl, { type OwlMood } from './Owl'
 import PillarsEditor from './PillarsEditor'
 import { PillarsContext } from './pillars-context'
+import { ItemActionsContext } from './item-actions'
 import Reveal from './Reveal'
 import Sky from './Sky'
 import { useScroll } from './useScroll'
@@ -134,7 +135,7 @@ function Home() {
     }
   }, [settings, slotKey, version, date])
 
-  const classify: Classify = (item, meta) => run(classifyItem(item.id, meta))
+  const classify: Classify = (item, meta) => void run(classifyItem(item.id, meta))
 
   /** 保存して読み直す。成否を返す(「終えた」の墨のしぶきは、保存できてから散らす) */
   async function run(action: Promise<{ ok: boolean; message?: string }>): Promise<boolean> {
@@ -178,6 +179,16 @@ function Home() {
 
   return (
     <PillarsContext.Provider value={settings.pillars}>
+    {/* やることの詳細から使う操作(plan/022 C) */}
+    <ItemActionsContext.Provider
+      value={{
+        classify,
+        place: slot ? (item) => run(placeNow(item.id, slot)) : null,
+        complete: (item) => run(completeItem(item.id)),
+        letGo: (item) => run(reconsider(item.id, 'someday')),
+        refresh: reload,
+      }}
+    >
     <div className="min-h-screen px-6 pt-7 pb-36 lg:px-18 lg:pt-9 lg:pb-12">
       {/* 日付、ふくろう、タブのバーは、スクロールしても、どのページでも上に残る(spec R36 改、R43、plan/021) */}
       <div
@@ -224,7 +235,7 @@ function Home() {
         </div>
       ) : (
         <div className="mx-auto mt-20 grid max-w-6xl gap-16 lg:mt-28 lg:grid-cols-[3fr_2fr] lg:gap-16">
-          <main className="flex flex-col gap-16">
+          <main className="flex min-w-0 flex-col gap-16">
             <Sky key={period} period={period} />
             <NowView
               block={block}
@@ -232,10 +243,9 @@ function Home() {
               events={nowEvents}
               onResult={(entry, result) => run(setResult(entry, result))}
               onUnplace={(entry) => run(unplace(entry))}
-              onClassify={classify}
             />
             <Reveal>
-              <TodayDue {...dueByToday(due, date)} onComplete={(item) => run(completeItem(item.id))} onClassify={classify} />
+              <TodayDue {...dueByToday(due, date)} onComplete={(item) => run(completeItem(item.id))} />
             </Reveal>
             {message && <p className="m-0 text-sm text-ink-3">{message}</p>}
             <Reveal className="relative hidden lg:block">
@@ -243,7 +253,7 @@ function Home() {
             </Reveal>
           </main>
 
-          <aside className="flex flex-col gap-12 lg:border-l lg:border-rule-soft lg:pl-12">
+          <aside className="flex min-w-0 flex-col gap-12 lg:border-l lg:border-rule-soft lg:pl-12">
             <section className="relative">
               <p className="m-0 mb-4 label">今日のこれから</p>
               <div className="flex flex-col gap-3 text-base leading-relaxed text-ink">
@@ -263,7 +273,7 @@ function Home() {
             </Reveal>
 
             <Reveal>
-              <InboxList items={inbox} canPlace={slot !== null} onPlace={(item) => slot && run(placeNow(item.id, slot))} onClassify={classify} />
+              <InboxList items={inbox} canPlace={slot !== null} onPlace={(item) => slot && run(placeNow(item.id, slot))} />
             </Reveal>
 
             <Reveal className="relative lg:hidden">
@@ -292,6 +302,7 @@ function Home() {
         </button>
       </footer>
     </div>
+    </ItemActionsContext.Provider>
     </PillarsContext.Provider>
   )
 }

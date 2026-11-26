@@ -2,7 +2,7 @@ import type { NowEntry, PlacementResult } from '../data/items'
 import type { Block } from '../domain/blocks'
 import { useState } from 'react'
 import HandCircle from './HandCircle'
-import ItemMeta, { type Classify } from './ItemMeta'
+import ItemDetail from './ItemDetail'
 
 // 今の画面(R13、R14、R14a)。今やることだけを大きく(P7)
 export default function NowView({
@@ -11,7 +11,6 @@ export default function NowView({
   events,
   onResult,
   onUnplace,
-  onClassify,
 }: {
   block: Block | null
   entries: NowEntry[]
@@ -19,7 +18,6 @@ export default function NowView({
   events: string[]
   onResult: (entry: NowEntry, result: PlacementResult) => void | Promise<boolean>
   onUnplace: (entry: NowEntry) => void
-  onClassify: Classify
 }) {
   const [editing, setEditing] = useState<string | null>(null)
   // いま終えたものだけ「終えた。」を書き込む動きにする。開き直したときは、書き込み済みとして静かに見せる(PR #17 のレビューの Nit)
@@ -75,7 +73,7 @@ export default function NowView({
               {entry.result === 'done' && <p className={`m-0 ml-12 font-hand text-[17px] text-ink ${justDone === entry.placementId ? 'ink-write' : ''}`}>終えた。</p>}
               {editing === entry.item.id && (
                 <div className="ml-12">
-                  <ItemMeta item={entry.item} onClassify={onClassify} />
+                  <ItemDetail item={entry.item} placed />
                 </div>
               )}
               <div className="mt-3 ml-12 flex flex-wrap gap-x-5 font-hand text-[15px]">

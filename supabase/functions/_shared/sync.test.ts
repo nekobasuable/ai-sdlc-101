@@ -12,6 +12,7 @@ const task = (over: Partial<RemoteTask> = {}): RemoteTask => ({
   id: 't1',
   listId: 'univ',
   title: '統計のレポート',
+  notes: null,
   due: '2026-11-27',
   completed: false,
   deleted: false,
@@ -23,6 +24,7 @@ const task = (over: Partial<RemoteTask> = {}): RemoteTask => ({
 const synced = (over: Partial<LocalItem> = {}): LocalItem => ({
   id: 'i1',
   body: '統計のレポート',
+  notes: null,
   area: 'school',
   dueDate: '2026-11-27',
   status: 'inbox',
@@ -151,5 +153,24 @@ describe('linksFromLists', () => {
 
   it('リストが1つもなければ、対象もない', () => {
     expect(linksFromLists([], [])).toEqual([])
+  })
+})
+
+describe('メモ(Google ToDo の「詳細」、plan/022 C)', () => {
+  it('Google でメモだけが変わったら、アプリに取り込む', () => {
+    const ops = planSync([synced()], [task({ notes: '第3章まで', updated: T1 })], [UNIV])
+    expect(ops).toHaveLength(1)
+    expect(ops[0]).toMatchObject({ kind: 'updateLocal', task: { notes: '第3章まで' } })
+  })
+
+  it('アプリでメモだけを変えたら(updated_at が進む)、Google に送る', () => {
+    const ops = planSync([synced({ notes: '参考文献を足す', updatedAt: T1 })], [task()], [UNIV])
+    expect(ops).toHaveLength(1)
+    expect(ops[0]).toMatchObject({ kind: 'updateRemote', item: { notes: '参考文献を足す' } })
+  })
+
+  it('両方でメモを変えたら、あとから変えたほうを正とする', () => {
+    const ops = planSync([synced({ notes: 'アプリ', updatedAt: T2 })], [task({ notes: 'Google', updated: T1 })], [UNIV])
+    expect(ops[0]).toMatchObject({ kind: 'updateRemote' })
   })
 })
