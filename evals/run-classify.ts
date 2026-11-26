@@ -7,6 +7,7 @@ import { AiUnavailable, generateJson } from '../supabase/functions/_shared/ai.ts
 import { buildClassifyRequest, parseClassification, ruleViolations } from '../supabase/functions/_shared/classify.ts'
 
 type Case = { id: string; body: string; dueDate: string | null; area: string }
+type Pillar = { id: string; label: string }
 
 const AREA_RATE = 0.8
 
@@ -25,18 +26,19 @@ if (!apiKey || !model) {
   process.exit(0)
 }
 
-const { today, cases } = JSON.parse(readFileSync(new URL('./classify/cases.json', import.meta.url), 'utf8')) as { today: string; cases: Case[] }
+// 柱の一覧も例に持たせる(本人が決める柱で見立てられるかを見る。plan/022)
+const { today, cases, pillars } = JSON.parse(readFileSync(new URL('./classify/cases.json', import.meta.url), 'utf8')) as { today: string; cases: Case[]; pillars: Pillar[] }
 
 let raw: unknown
 try {
   // 無料枠の回数の上限にかからないよう、例はまとめて1回で送る(本番と同じ形)
-  raw = await generateJson({ provider: 'gemini', apiKey, model, fallbackModel, retries: 3 }, buildClassifyRequest(cases, today))
+  raw = await generateJson({ provider: 'gemini', apiKey, model, fallbackModel, retries: 3, timeoutMs: 90_000 }, buildClassifyRequest(cases, today, pillars))
 } catch (e) {
   report(`## AI の見立ての評価(${model})\n評価できなかった: 呼び出しの失敗(${e instanceof AiUnavailable ? e.message : String(e)})。時間をおいて回し直す`)
   process.exit(1)
 }
 
-const got = parseClassification(raw, cases.length)
+const got = parseClassification(raw, cases.length, pillars.map((p) => p.id))
 const lines: string[] = []
 let areaHits = 0
 let ruleBreaks = 0

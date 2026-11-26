@@ -1,10 +1,11 @@
-import { AREAS } from './areas'
 import type { Block } from './blocks'
+import { pillarLabel, type Pillar } from './pillars'
 import type { Cell } from './week-grid'
 
 // 省みる(plan/007 段階 D、spec R15〜R17)。時間は「およそ」で、文章にして見せる(C2、R16)
 export type ReviewEntry = { blockId: string; day: number; result: string | null; item: { id: string; status: string; area: string | null; quadrant: number | null } }
-export type TimeRow = { label: string; minutes: number }
+/** count: その週に、何度時間を向けたか(柱ごとの振り返りに使う。spec R15 補、plan/022) */
+export type TimeRow = { label: string; minutes: number; count: number }
 
 const QUADRANT_LABELS: Record<number, string> = {
   1: '大切で急ぐこと',
@@ -23,19 +24,25 @@ function minutesOf(entry: ReviewEntry, blocks: readonly Block[]): number {
   return 0
 }
 
-/** 象限別と領域別の時間。多い順に並べ、0分のものは出さない */
-export function timeSpent(entries: readonly ReviewEntry[], blocks: readonly Block[]): { byQuadrant: TimeRow[]; byArea: TimeRow[] } {
-  const quadrant = new Map<string, number>()
-  const area = new Map<string, number>()
+/** 象限別と、人生の柱別の時間と回数。多い順に並べ、0分のものは出さない */
+export function timeSpent(
+  entries: readonly ReviewEntry[],
+  blocks: readonly Block[],
+  pillars: readonly Pillar[],
+): { byQuadrant: TimeRow[]; byArea: TimeRow[] } {
+  const quadrant = new Map<string, { minutes: number; count: number }>()
+  const area = new Map<string, { minutes: number; count: number }>()
+  const add = (map: typeof area, key: string, m: number) => {
+    const cur = map.get(key) ?? { minutes: 0, count: 0 }
+    map.set(key, { minutes: cur.minutes + m, count: cur.count + 1 })
+  }
   for (const e of entries) {
     const m = minutesOf(e, blocks)
     if (m === 0) continue
-    const q = e.item.quadrant ? QUADRANT_LABELS[e.item.quadrant] : '仕分けていないこと'
-    const a = AREAS.find((x) => x.id === e.item.area)?.label ?? '領域を決めていないこと'
-    quadrant.set(q, (quadrant.get(q) ?? 0) + m)
-    area.set(a, (area.get(a) ?? 0) + m)
+    add(quadrant, e.item.quadrant ? QUADRANT_LABELS[e.item.quadrant] : '仕分けていないこと', m)
+    add(area, pillarLabel(pillars, e.item.area) ?? '柱を決めていないこと', m)
   }
-  const rows = (map: Map<string, number>) => [...map].map(([label, minutes]) => ({ label, minutes })).sort((x, y) => y.minutes - x.minutes)
+  const rows = (map: typeof area) => [...map].map(([label, v]) => ({ label, ...v })).sort((x, y) => y.minutes - x.minutes)
   return { byQuadrant: rows(quadrant), byArea: rows(area) }
 }
 

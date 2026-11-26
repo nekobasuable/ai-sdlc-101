@@ -24,7 +24,7 @@ export default function MonthView({ settings, now, version }: { settings: AppSet
   const [shown, setShown] = useState({ year: p.year, month: p.month })
   const [picked, setPicked] = useState<string | null>(today)
   // どの月の中身かを一緒に持ち、切り替えた直後に前の月の中身を重ねない
-  const [loaded, setLoaded] = useState<{ key: string; days: Map<string, DayContent> } | null>(null)
+  const [loaded, setLoaded] = useState<{ key: string; days: Map<string, DayContent>; failed: boolean } | null>(null)
 
   const grid = monthGrid(shown.year, shown.month, today)
   const start = grid[0][0].date
@@ -44,6 +44,8 @@ export default function MonthView({ settings, now, version }: { settings: AppSet
         if (!active) return
         setLoaded({
           key,
+          // どれかが読めなかったら、「余白」と見分けられるように覚えておく(PR #19 のレビューの Nit)
+          failed: !placed.ok || !due.ok || !done.ok || !events.ok,
           days: collectByDate(start, {
             events: events.ok ? placeEvents(events.data, start, tz, settings.blocks, days) : [],
             due: due.ok ? due.data : [],
@@ -52,7 +54,10 @@ export default function MonthView({ settings, now, version }: { settings: AppSet
           }),
         })
       },
-    )
+    ).catch(() => {
+      // 通信の例外でも「開いています…」のままにしない
+      if (active) setLoaded({ key, days: new Map(), failed: true })
+    })
     return () => {
       active = false
     }
@@ -60,6 +65,7 @@ export default function MonthView({ settings, now, version }: { settings: AppSet
   }, [key, start, end, tz, settings.blocks, version]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const days = loaded?.key === key ? loaded.days : null
+  const failed = loaded?.key === key && loaded.failed
   const move = (delta: number) => {
     setShown(shiftMonth(shown.year, shown.month, delta))
     setPicked(null)
@@ -101,6 +107,7 @@ export default function MonthView({ settings, now, version }: { settings: AppSet
           ))}
         </div>
         {!days && <p className="m-0 mt-4 text-sm text-ink-3">開いています…</p>}
+        {failed && <p className="m-0 mt-3 text-[13px] text-ink-3">いくつか読めなかった。少しおいて開き直すと、読めることがある。</p>}
         {days &&
           grid.map((week) => (
             <div key={week[0].date} className="grid grid-cols-7 border-b border-rule-soft">
@@ -155,11 +162,11 @@ export default function MonthView({ settings, now, version }: { settings: AppSet
             {Number(picked.slice(5, 7))}月{Number(picked.slice(8))}日のこと
           </p>
           {!pickedContent || (pickedContent.events.length + pickedContent.due.length + pickedContent.placed.length + pickedContent.done.length === 0) ? (
-            <p className="m-0 font-mincho text-[15px] tracking-[0.1em] text-ink-3">余白の一日</p>
+            <p className="m-0 font-mincho text-[15px] tracking-[0.1em] text-ink-3">{failed ? '読めなかった分がある。' : '余白の一日'}</p>
           ) : (
             <>
               <DayList title="予定" items={pickedContent.events.map((e) => (e.time ? `${e.time}　${e.title}` : `一日、${e.title}`))} />
-              <DayList title="今日までのこと" items={pickedContent.due} />
+              <DayList title="〆" items={pickedContent.due} />
               <DayList title="置いた予定" items={pickedContent.placed.map((x) => (x.done ? `${x.body}(終えた)` : x.body))} />
               <DayList title="終えたこと" items={pickedContent.done} faint />
             </>

@@ -12,6 +12,8 @@ export type AiConfig = {
   retries?: number
   /** 呼び直しの間隔の基準(ミリ秒)。テストでは 0 にする */
   backoffMs?: number
+  /** 1回の呼び出しで返事を待つ上限(ミリ秒)。既定は 25 秒。まとめて送る見立てや評価では長くする(PR #20) */
+  timeoutMs?: number
 }
 
 export class AiUnavailable extends Error {
@@ -44,7 +46,7 @@ async function withRetries(config: AiConfig, model: string, req: AiRequest): Pro
     try {
       switch (config.provider) {
         case 'gemini':
-          return await gemini(config.apiKey, model, req)
+          return await gemini(config.apiKey, model, req, config.timeoutMs ?? TIMEOUT_MS)
       }
     } catch (e) {
       // 待てば通りうる失敗だけ、間を空けて呼び直す(plan/011 の評価で、503 と 429 が続いたため)
@@ -58,7 +60,7 @@ async function withRetries(config: AiConfig, model: string, req: AiRequest): Pro
 // 本番の最悪の待ち時間を、Edge Functions の上限(150秒)より十分短く保つ(PR #9 のレビューの Nit)
 const TIMEOUT_MS = 25_000
 
-async function gemini(apiKey: string, model: string, req: AiRequest): Promise<unknown> {
+async function gemini(apiKey: string, model: string, req: AiRequest, timeoutMs: number): Promise<unknown> {
   let res: Response
   try {
     res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
@@ -69,10 +71,11 @@ async function gemini(apiKey: string, model: string, req: AiRequest): Promise<un
         contents: [{ role: 'user', parts: [{ text: req.user }] }],
         generationConfig: { responseMimeType: 'application/json', responseSchema: req.schema, temperature: 0.3 },
       }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
     })
   } catch {
-    throw new AiUnavailable('Gemini: no response (timeout or network)')
+    // 時間切れや通信の途切れも、待てば通りうる失敗として扱う(呼び直しと、控えのモデルへの切り替えの対象。PR #20 の評価で、時間切れのまま終わったため)
+    throw new AiUnavailable('Gemini: no response (timeout or network)', true)
   }
   // 429 は無料枠の回数の上限。ほかの失敗とまとめて「いまは使えない」として扱う
   if (!res.ok) throw new AiUnavailable(`Gemini: ${res.status}`, res.status === 503 || res.status === 429)

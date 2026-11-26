@@ -87,14 +87,14 @@ isOneToOne: false
                   ]
                 },"settings": {
                   Row: {
-                    "ai_classify": boolean,"blocks": Json | null,"calendar_write": boolean,"notifications": NonNullable<Json>,"time_zone": string,"updated_at": string,"user_id": string
+                    "ai_classify": boolean,"blocks": Json | null,"calendar_write": boolean,"notifications": NonNullable<Json>,"pillars": NonNullable<Json>,"time_zone": string,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "ai_classify"?: boolean,"blocks"?: Json | null,"calendar_write"?: boolean,"notifications"?: NonNullable<Json>,"time_zone"?: string,"updated_at"?: string,"user_id"?: string
+                    "ai_classify"?: boolean,"blocks"?: Json | null,"calendar_write"?: boolean,"notifications"?: NonNullable<Json>,"pillars"?: NonNullable<Json>,"time_zone"?: string,"updated_at"?: string,"user_id"?: string
                   }
                   Update: {
-                    "ai_classify"?: boolean,"blocks"?: Json | null,"calendar_write"?: boolean,"notifications"?: NonNullable<Json>,"time_zone"?: string,"updated_at"?: string,"user_id"?: string
+                    "ai_classify"?: boolean,"blocks"?: Json | null,"calendar_write"?: boolean,"notifications"?: NonNullable<Json>,"pillars"?: NonNullable<Json>,"time_zone"?: string,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     

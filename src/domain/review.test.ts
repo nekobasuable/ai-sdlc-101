@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_BLOCKS } from './blocks'
+import { DEFAULT_PILLARS } from './pillars'
 import { aboutHours, letGo, timeSpent, type ReviewEntry } from './review'
 import { weekGrid } from './week-grid'
 
@@ -7,7 +8,7 @@ const entry = (over: Partial<ReviewEntry> & { id?: string }): ReviewEntry => ({
   blockId: 'morning', // 3時間のブロック
   day: 0,
   result: 'done',
-  item: { id: over.id ?? 'i', status: 'candidate', area: 'school', quadrant: 2, ...over.item },
+  item: { id: over.id ?? 'i', status: 'candidate', area: 'learning', quadrant: 2, ...over.item },
   ...over,
 })
 
@@ -16,16 +17,27 @@ describe('timeSpent', () => {
     const { byQuadrant } = timeSpent(
       [entry({ result: 'done' }), entry({ result: 'partial' }), entry({ result: 'not_done' }), entry({ result: null })],
       DEFAULT_BLOCKS,
+      DEFAULT_PILLARS,
     )
-    expect(byQuadrant).toEqual([{ label: '大切で、急がないこと', minutes: 180 + 90 }])
+    expect(byQuadrant).toEqual([{ label: '大切で、急がないこと', minutes: 180 + 90, count: 2 }])
   })
 
-  it('領域別に、多い順に並べる。仕分けていないものは、そうとわかる言葉で', () => {
+  it('人生の柱ごとに、多い順に並べ、回数も数える。仕分けていないものは、そうとわかる言葉で', () => {
     const { byArea, byQuadrant } = timeSpent(
-      [entry({ item: { id: 'a', status: 'done', area: 'work', quadrant: null } }), entry({ blockId: 'night', item: { id: 'b', status: 'done', area: 'school', quadrant: 1 } })],
+      [
+        entry({ item: { id: 'a', status: 'done', area: 'work', quadrant: null } }),
+        entry({ blockId: 'night', item: { id: 'b', status: 'done', area: 'health', quadrant: 1 } }),
+        entry({ blockId: 'early', item: { id: 'c', status: 'done', area: 'health', quadrant: 1 } }),
+        entry({ blockId: 'noon', item: { id: 'd', status: 'done', area: 'gone', quadrant: 1 } }),
+      ],
       DEFAULT_BLOCKS,
+      DEFAULT_PILLARS,
     )
-    expect(byArea.map((r) => r.label)).toEqual(['学校', '仕事'])
+    expect(byArea.map((r) => [r.label, r.count])).toEqual([
+      ['健康', 2],
+      ['仕事', 1],
+      ['柱を決めていないこと', 1],
+    ])
     expect(byQuadrant.map((r) => r.label)).toContain('仕分けていないこと')
   })
 })

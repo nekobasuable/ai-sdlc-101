@@ -42,4 +42,19 @@ describe('generateJson', () => {
     await expect(generateJson({ ...base, retries: 2, fallbackModel: 'spare' }, req)).rejects.toBeInstanceOf(AiUnavailable)
     expect(models).toEqual(['main'])
   })
+
+  it('時間切れや通信の途切れは、控えのモデルに切り替える(PR #20)', async () => {
+    const models: string[] = []
+    let first = true
+    vi.stubGlobal('fetch', (url: string) => {
+      models.push(decodeURIComponent(url.split('/models/')[1].split(':')[0]))
+      if (first) {
+        first = false
+        return Promise.reject(new DOMException('timed out', 'TimeoutError'))
+      }
+      return Promise.resolve(ok({ c: 3 }))
+    })
+    expect(await generateJson({ ...base, retries: 0, fallbackModel: 'spare', timeoutMs: 10 }, req)).toEqual({ c: 3 })
+    expect(models).toEqual(['main', 'spare'])
+  })
 })
