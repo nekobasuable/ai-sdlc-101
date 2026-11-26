@@ -14,7 +14,7 @@ export default function TodayDue({
 }: {
   today: Item[]
   overdue: Item[]
-  onComplete: (item: Item) => void
+  onComplete: (item: Item) => void | Promise<boolean>
   onClassify: Classify
 }) {
   const [editing, setEditing] = useState<string | null>(null)
@@ -24,7 +24,7 @@ export default function TodayDue({
       <h2 className="m-0 mb-2 label font-normal">今日までのこと</h2>
       <ul className="m-0 flex list-none flex-col p-0">
         {[...overdue, ...today].map((item) => (
-          <li key={item.id}>
+          <li key={item.id} className="border-b border-rule-soft last:border-b-0">
             <div className="flex items-center gap-2">
               <HandCircle checked={false} label={`${item.body}を終えた`} onClick={() => onComplete(item)} />
               <button

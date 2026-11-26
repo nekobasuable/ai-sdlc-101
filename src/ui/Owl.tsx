@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { OwlPose } from '../domain/owl'
+import { useScroll } from './useScroll'
 
 /** 省みる画面での様子(plan/013): 聞いている間は首をかしげ、整えている間は目をきょろきょろ、下書きが出たらうなずく */
 export type OwlMood = 'listen' | 'think' | 'nod' | null
@@ -9,6 +10,8 @@ export type OwlMood = 'listen' | 'think' | 'nod' | null
 // 押すと跳ねて「ほう。」と一言。nudge の値が変わったとき(終えたときなど)も跳ねる
 export default function Owl({ pose, className = '', mood = null, nudge = 0 }: { pose: OwlPose; className?: string; mood?: OwlMood; nudge?: number }) {
   const label = pose === 'sleep' ? '眠っているふくろう' : pose === 'read' ? '本を読むふくろう' : 'ふくろう'
+  // スクロールに合わせて、瞳が少しだけ上下に追う(plan/020)
+  const { pupil } = useScroll()
   const [hop, setHop] = useState(0)
   const [hoo, setHoo] = useState(false)
   const timers = useRef<number[]>([])
@@ -21,15 +24,21 @@ export default function Owl({ pose, className = '', mood = null, nudge = 0 }: { 
   }, [nudge])
 
   const poke = () => {
-    if (pose === 'sleep') return
     setHop((h) => h + 1)
     setHoo(true)
     timers.current.push(window.setTimeout(() => setHoo(false), 1800))
   }
 
+  const asleep = pose === 'sleep'
+  const Tag = asleep ? 'span' : 'button'
   const moodClass = mood === 'listen' ? 'owl-listen' : mood === 'nod' ? 'owl-nod' : ''
   return (
-    <button type="button" aria-label={label} onClick={poke} className={`owl-land flex size-14 items-start justify-center text-ink ${className.includes('absolute') ? '' : 'relative'} ${className}`}>
+    // 眠っている姿は押しても何もしないので、ボタンにしない(キーボードで選べないように。PR #17 のレビューの Nit)
+    <Tag
+      {...(asleep ? { role: 'img' } : { type: 'button' as const, onClick: poke })}
+      aria-label={label}
+      className={`owl-land flex size-14 items-start justify-center text-ink ${className.includes('absolute') ? '' : 'relative'} ${className}`}
+    >
       {/* key を変えると、跳ねる動きをもう一度最初から再生できる */}
       <span key={hop} className={`block ${hop > 0 ? 'owl-hop' : ''}`}>
         <svg className={`block ${moodClass}`} width="46" height="52" viewBox="0 0 46 52" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -41,9 +50,11 @@ export default function Owl({ pose, className = '', mood = null, nudge = 0 }: { 
                 <g className="owl-blink">
                   <circle cx="16.5" cy="19" r="4.2" />
                   <circle cx="29.5" cy="19" r="4.2" />
-                  <g className={mood === 'think' ? 'owl-look' : ''}>
-                    <circle cx="17" cy="19.5" r="1" fill="currentColor" />
-                    <circle cx="29" cy="19.5" r="1" fill="currentColor" />
+                  <g style={{ transform: `translateY(${pupil}px)`, transition: 'transform 0.2s ease-out' }}>
+                    <g className={mood === 'think' ? 'owl-look' : ''}>
+                      <circle cx="17" cy="19.5" r="1" fill="currentColor" />
+                      <circle cx="29" cy="19.5" r="1" fill="currentColor" />
+                    </g>
                   </g>
                 </g>
                 <path d="M15 31c2 1.5 3 1.5 4 0M23 33c2 1.5 3 1.5 4 0M17.5 37c2 1.5 3 1.5 4 0" />
@@ -73,6 +84,6 @@ export default function Owl({ pose, className = '', mood = null, nudge = 0 }: { 
           ほう。
         </span>
       )}
-    </button>
+    </Tag>
   )
 }

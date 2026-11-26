@@ -12,20 +12,21 @@ const DROPS: readonly [number, number, number][] = [
 ]
 
 // 手で描いたような丸(スキル: 終えた)。開いたときに一筆で描かれ、終えたら中にチェックを書き込み、墨のしぶきが散る(plan/013)
-export default function HandCircle({ checked, onClick, label }: { checked: boolean; onClick: () => void; label: string }) {
+/** onClick が保存の成否を返すときは、保存できてから墨を散らす(PR #17 のレビューの Nit) */
+export default function HandCircle({ checked, onClick, label }: { checked: boolean; onClick: () => void | Promise<boolean>; label: string }) {
   const [splash, setSplash] = useState(0)
   const timer = useRef<number | null>(null)
   useEffect(() => () => {
     if (timer.current) window.clearTimeout(timer.current)
   }, [])
 
-  const press = () => {
-    if (!checked) {
-      setSplash((n) => n + 1)
-      if (timer.current) window.clearTimeout(timer.current)
-      timer.current = window.setTimeout(() => setSplash(0), 1000)
-    }
-    onClick()
+  const press = async () => {
+    const finishing = !checked
+    const saved = await onClick()
+    if (!finishing || saved === false) return
+    setSplash((n) => n + 1)
+    if (timer.current) window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setSplash(0), 1000)
   }
 
   return (
@@ -33,7 +34,7 @@ export default function HandCircle({ checked, onClick, label }: { checked: boole
       type="button"
       aria-label={label}
       aria-pressed={checked}
-      onClick={press}
+      onClick={() => void press()}
       className="relative -ml-2 flex size-11 shrink-0 items-center justify-center text-ink"
     >
       <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">

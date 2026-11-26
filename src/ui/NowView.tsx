@@ -24,7 +24,7 @@ export default function NowView({
   owlNudge: number
   /** 今のブロックにあるカレンダーの予定(「講義(18:00)」の形) */
   events: string[]
-  onResult: (entry: NowEntry, result: PlacementResult) => void
+  onResult: (entry: NowEntry, result: PlacementResult) => void | Promise<boolean>
   onUnplace: (entry: NowEntry) => void
   onClassify: Classify
 }) {
@@ -61,7 +61,7 @@ export default function NowView({
                   label={entry.result === 'done' ? '終えた(押すと途中までに戻す)' : '終えた'}
                   onClick={() => {
                     if (entry.result !== 'done') setJustDone(entry.placementId)
-                    onResult(entry, entry.result === 'done' ? 'partial' : 'done')
+                    return onResult(entry, entry.result === 'done' ? 'partial' : 'done')
                   }}
                 />
                 <h2

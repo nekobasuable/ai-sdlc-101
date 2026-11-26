@@ -52,7 +52,13 @@ export default function Capture({
   function fly(text: string) {
     const input = inputRef.current?.getBoundingClientRect()
     const target = document.querySelector('[data-fly-target]')?.getBoundingClientRect()
-    if (!input || !target) return
+    if (!input || !target) {
+      // 行き先が見つからなくても、着いた知らせは出す(PR #17 のレビューの Nit)
+      setLandedNote(true)
+      onLanded?.()
+      timers.current.push(window.setTimeout(() => setLandedNote(false), 2500))
+      return
+    }
     const from = { x: input.left, y: input.top + input.height / 2 - 12 }
     const chars = planFlight(text, from, { x: target.left + target.width / 2, y: target.top + target.height / 2 - 12 }, 16)
     timers.current.forEach((t) => window.clearTimeout(t))

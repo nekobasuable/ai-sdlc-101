@@ -1,6 +1,7 @@
 import type { Area } from '../domain/areas'
 import type { Quadrant } from '../domain/quadrant'
 import { addDays, type Slot } from '../domain/slot'
+import { weeksCovering } from '../domain/week-grid'
 import type { Database } from './database.types'
 import { failure, toResult, type DataResult } from './result'
 import { supabase } from './supabase'
@@ -176,8 +177,7 @@ export async function listWeek(weekStart: string): Promise<DataResult<WeekEntry[
 export async function listPlacementsFrom(start: string): Promise<DataResult<WeekEntry[]>> {
   if (!supabase) return NOT_CONFIGURED
   const end = addDays(start, 6)
-  const weekday = (d: string) => (new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7
-  const weeks = [...new Set([addDays(start, -weekday(start)), addDays(end, -weekday(end))])]
+  const weeks = weeksCovering(start)
   const { data, error } = await supabase
     .from('placements')
     .select('id, week_start, day, block_id, result, item:items(id, body, status, area, quadrant, due_date, area_source, quadrant_source, ai_reason, deleted_at)')

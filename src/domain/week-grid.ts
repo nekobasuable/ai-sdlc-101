@@ -1,5 +1,5 @@
 import { DEFAULT_BLOCKS, minuteOfDay, type Block } from './blocks'
-import { addDays, weekStartOf } from './slot'
+import { addDays } from './slot'
 import { zonedParts } from './time'
 
 /** ブロックが、今から見て過去・今・未来のどれか */
@@ -18,7 +18,7 @@ export function weekGrid(weekStart: string, now: Date, timeZone: string, blocks:
 }
 
 /** 日付(YYYY-MM-DD)の曜日。0 = 月曜 〜 6 = 日曜 */
-function weekdayOf(date: string): number {
+export function weekdayOf(date: string): number {
   const [y, m, d] = date.split('-').map(Number)
   return (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7
 }
@@ -57,7 +57,14 @@ export function slackRatio(grid: Cell[][], filled: ReadonlySet<string>): number 
 
 /** 今日(設定のタイムゾーン、YYYY-MM-DD) */
 export function todayOf(now: Date, timeZone: string): string {
-  return addDays(weekStartOf(now, timeZone), (zonedParts(now, timeZone).weekday + 6) % 7)
+  const p = zonedParts(now, timeZone)
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}`
+}
+
+/** start の日から7日がかかる暦の週(月曜の日付)。1つか2つ(plan/019、PR #16 のレビューの Nit) */
+export function weeksCovering(start: string): string[] {
+  const end = addDays(start, 6)
+  return [...new Set([addDays(start, -weekdayOf(start)), addDays(end, -weekdayOf(end))])]
 }
 
 /** 余白が少なめだと、やわらかく知らせる目安(R11)。止めはしない */

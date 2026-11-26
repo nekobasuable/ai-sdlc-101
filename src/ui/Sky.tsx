@@ -1,13 +1,18 @@
 import type { CSSProperties } from 'react'
 import type { Period } from '../domain/period'
+import { useScroll } from './useScroll'
 
 // 時間帯の空(spec R44、plan/013)。墨の線で、少しずつ描かれる。時間帯が変わると描き直す(呼ぶ側で key に時間帯を渡す)
 const delay = (s: number): CSSProperties => ({ animationDelay: `${s}s` })
 const long = { '--len': 420 } as CSSProperties
 
 export default function Sky({ period }: { period: Period }) {
+  // スクロールすると、空は少し遅れて動き、薄れていく(奥行き。spec R43 補、plan/020)
+  const { sky } = useScroll()
   return (
-    <svg className="block h-auto w-full max-w-[420px]" viewBox="0 0 330 96" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" aria-hidden="true">
+    <svg
+      style={{ transform: `translateY(${sky}px)`, opacity: Math.max(0, 1 - sky / 100) }}
+      className="pointer-events-none block h-auto w-full max-w-[420px] will-change-transform" viewBox="0 0 330 96" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" aria-hidden="true">
       {period === 'morning' && (
         <g className="text-ink-2">
           <path className="ink-draw" style={long} d="M0 80C60 79 120 81 180 80S290 79 330 80" />

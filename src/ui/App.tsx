@@ -18,7 +18,9 @@ import InboxList from './InboxList'
 import type { Classify } from './ItemMeta'
 import NowView from './NowView'
 import Owl from './Owl'
+import Reveal from './Reveal'
 import Sky from './Sky'
+import { useScroll } from './useScroll'
 import { newlyFinished, resultsOf } from '../domain/finished'
 import { PAPER, periodOf } from '../domain/period'
 import DailyNote from './DailyNote'
@@ -57,6 +59,7 @@ function Home() {
   const [due, setDue] = useState<Item[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const [tab, setTab] = useState<'now' | 'week' | 'review'>('now')
+  const scroll = useScroll()
   // 放り込んだ文字が「週」に着いた回数(着くたびに点を灯し直す)
   const [landed, setLanded] = useState(0)
   // 今のブロックで、まだ終えていなかったものを終えた回数。ふくろうはこの値が増えたときだけ跳ねる(plan/013)。
@@ -121,11 +124,16 @@ function Home() {
 
   const classify: Classify = (item, meta) => run(classifyItem(item.id, meta))
 
-  async function run(action: Promise<{ ok: boolean; message?: string }>) {
+  /** 保存して読み直す。成否を返す(「終えた」の墨のしぶきは、保存できてから散らす) */
+  async function run(action: Promise<{ ok: boolean; message?: string }>): Promise<boolean> {
     const res = await action
-    if (!res.ok) return setMessage(res.message ?? null)
+    if (!res.ok) {
+      setMessage(res.message ?? null)
+      return false
+    }
     setMessage(null)
     reload()
+    return true
   }
 
   if (!settings) return <p className="p-6 text-ink-3">{message ?? '開いています…'}</p>
@@ -158,7 +166,11 @@ function Home() {
 
   return (
     <div className="min-h-screen px-6 pt-7 pb-36 lg:px-18 lg:pt-9 lg:pb-12">
-      <header className="mx-auto flex max-w-6xl items-baseline justify-between">
+      {/* 日付とタブは、スクロールしても上に残る。下へ送るときは控えめに隠れ、上へ戻すと現れる(spec R43 補、plan/020) */}
+      <div
+        className={`sticky top-0 z-40 -mx-6 -mt-7 bg-paper px-6 pt-4 transition-[transform,border-color] duration-300 lg:-mx-18 lg:-mt-9 lg:px-18 lg:pt-6 ${scroll.scrolled ? 'border-b border-rule-soft' : 'border-b border-transparent'} ${scroll.headerHidden ? '-translate-y-full' : ''}`}
+      >
+      <header className="mx-auto flex max-w-6xl items-baseline justify-between pt-3 lg:pt-3">
         <span className="font-hand text-[15px] text-ink-3">
           {p.month}月{p.day}日({WEEKDAYS[p.weekday]})
         </span>
@@ -176,6 +188,7 @@ function Home() {
           </button>
         </nav>
       </header>
+      </div>
 
       {tab === 'review' ? (
         <div className="mx-auto mt-10 max-w-2xl">
@@ -188,7 +201,7 @@ function Home() {
           {captureBar('lg:static lg:mt-12 lg:px-0 lg:pb-0')}
         </div>
       ) : (
-        <div className="mx-auto mt-20 grid max-w-6xl gap-16 lg:mt-28 lg:grid-cols-[7fr_4fr] lg:gap-24">
+        <div className="mx-auto mt-20 grid max-w-6xl gap-16 lg:mt-28 lg:grid-cols-[3fr_2fr] lg:gap-16">
           <main className="flex flex-col gap-16">
             <Sky key={period} period={period} />
             <NowView
@@ -201,12 +214,14 @@ function Home() {
               onUnplace={(entry) => run(unplace(entry))}
               onClassify={classify}
             />
-            <TodayDue {...dueByToday(due, date)} onComplete={(item) => run(completeItem(item.id))} onClassify={classify} />
+            <Reveal>
+              <TodayDue {...dueByToday(due, date)} onComplete={(item) => run(completeItem(item.id))} onClassify={classify} />
+            </Reveal>
             {message && <p className="m-0 text-sm text-ink-3">{message}</p>}
-            <div className="relative hidden lg:block">
+            <Reveal className="relative hidden lg:block">
               <QuoteLine screen="now" now={now} timeZone={tz} />
               {owl.spot === 'corner' && <Owl pose={owl.pose} nudge={owlNudge} className="absolute -top-16 right-0" />}
-            </div>
+            </Reveal>
           </main>
 
           <aside className="flex flex-col gap-12 lg:border-l lg:border-rule-soft lg:pl-12">
@@ -225,14 +240,18 @@ function Home() {
               {owl.spot === 'aside' && <Owl pose={owl.pose} nudge={owlNudge} className="absolute -top-14 right-0" />}
             </section>
 
-            <DailyNote date={date} />
+            <Reveal>
+              <DailyNote date={date} />
+            </Reveal>
 
-            <InboxList items={inbox} canPlace={slot !== null} onPlace={(item) => slot && run(placeNow(item.id, slot))} onClassify={classify} />
+            <Reveal>
+              <InboxList items={inbox} canPlace={slot !== null} onPlace={(item) => slot && run(placeNow(item.id, slot))} onClassify={classify} />
+            </Reveal>
 
-            <div className="relative lg:hidden">
+            <Reveal className="relative lg:hidden">
               <QuoteLine screen="now" now={now} timeZone={tz} />
               {owl.spot === 'corner' && <Owl pose={owl.pose} nudge={owlNudge} className="absolute -top-16 right-0" />}
-            </div>
+            </Reveal>
 
             {captureBar('lg:static lg:px-0 lg:pb-0')}
           </aside>
