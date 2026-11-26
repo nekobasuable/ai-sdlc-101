@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { saveFirstStep, saveNotes, type Item } from '../data/items'
+import { saveNotes, type Item } from '../data/items'
 import { consultText, consultUrl } from '../domain/consult'
 import { shortDate } from '../domain/due'
 import { pillarLabel } from '../domain/pillars'
@@ -10,7 +10,7 @@ import { usePillars } from './pillars-context'
 
 /**
  * やることの詳細(spec R49、R50、plan/022 C)。押すと開き、その仕事を進める手がかりを置く。
- * メモ(Google ToDo の「詳細」と同期)、最初の一歩、今やる・終えた・いつかに手放す、Claude に相談。
+ * メモ(Google ToDo の「詳細」と同期)、今やる・終えた・いつかに手放す、Claude に相談。
  * 仕分け(柱と局面)は一行で示し、「直す」を押したときだけ選ぶ欄を開く。
  * placed: 「今」のブロックに置いたもの(今やる・終えた・手放すは、その画面の操作を使う)
  */
@@ -18,33 +18,37 @@ export default function ItemDetail({ item, placed = false }: { item: Item; place
   const pillars = usePillars()
   const actions = useItemActions()
   const [notes, setNotes] = useState(item.notes ?? '')
-  const [step, setStep] = useState(item.firstStep ?? '')
   const [fixing, setFixing] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const notesRef = useRef<HTMLTextAreaElement>(null)
-  const stepRef = useRef<HTMLInputElement>(null)
 
   // 開いたまま同期で中身が変わったら、新しい値にする。書いている最中は本人の入力を優先する(PR #22 のレビューの Nit、plan/023)
   useEffect(() => {
     if (document.activeElement !== notesRef.current) setNotes(item.notes ?? '')
   }, [item.notes])
-  useEffect(() => {
-    if (document.activeElement !== stepRef.current) setStep(item.firstStep ?? '')
-  }, [item.firstStep])
 
   // メモの欄は、書いた分だけ縦に広がる。上限(画面の高さの半分)を超えたら、その中で送る(spec R49 補足、plan/023)
-  useLayoutEffect(() => {
-    const fit = () => {
-      const el = notesRef.current
-      if (!el) return
-      el.style.height = 'auto'
-      // 下線(border)の分も足す。足さないと、1px 足りずに中で送る印が出る
-      el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`
+  useLayoutEffect(() => fitHeight(notesRef.current), [notes])
+  useEffect(() => {
+    const el = notesRef.current
+    if (!el) return
+    let open = true
+    // 手書きの字(Web フォント)が後から届くと折り返しが変わるので、届いたらもう一度合わせる。閉じた後は何もしない(PR #23 のレビューの Nit)
+    void document.fonts?.ready.then(() => open && fitHeight(el))
+    // 画面の幅が変わる(スマホの回転、ウィンドウの幅)と折り返しも変わるので、幅が変わったら合わせ直す(PR #23 のレビューの Nit)。
+    // 高さの変化では呼ばない(自分で高さを変えるたびに呼ばれ続けないように)
+    let width = el.clientWidth
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => {
+      if (el.clientWidth === width) return
+      width = el.clientWidth
+      fitHeight(el)
+    })
+    observer?.observe(el)
+    return () => {
+      open = false
+      observer?.disconnect()
     }
-    fit()
-    // 手書きの字(Web フォント)が後から届くと折り返しが変わるので、届いたらもう一度合わせる
-    void document.fonts?.ready.then(fit)
-  }, [notes])
+  }, [])
   const pillar = pillarLabel(pillars, item.area)
   const quadrant = item.quadrant ? QUADRANT_NAMES[item.quadrant as Quadrant] : null
   const guessed = item.areaSource === 'ai' || item.quadrantSource === 'ai'
@@ -59,7 +63,7 @@ export default function ItemDetail({ item, placed = false }: { item: Item; place
     if (!(await run)) setMessage('いまは変えられなかった。少しおいて、もう一度。')
   }
 
-  const consult = consultUrl(consultText({ body: item.body, dueDate: item.dueDate, notes, firstStep: step, pillar }))
+  const consult = consultUrl(consultText({ body: item.body, dueDate: item.dueDate, notes, pillar }))
   const link = 'min-h-11 font-hand text-[15px] text-ink-3'
 
   return (
@@ -90,21 +94,6 @@ export default function ItemDetail({ item, placed = false }: { item: Item; place
           className="max-h-[50vh] w-full min-w-0 resize-none overflow-y-auto border-b border-rule bg-transparent py-1 font-hand text-base leading-relaxed text-ink outline-none"
         />
       </div>
-      <div className="flex items-baseline gap-2 border-b border-rule">
-        <label htmlFor={`step-${item.id}`} className="shrink-0 font-hand text-[15px] text-ink-3">
-          まず、
-        </label>
-        <input
-          ref={stepRef}
-          id={`step-${item.id}`}
-          value={step}
-          maxLength={80}
-          placeholder="最初の一歩を一行で"
-          onChange={(e) => setStep(e.target.value)}
-          onBlur={() => step !== (item.firstStep ?? '') && void keep(saveFirstStep(item.id, step))}
-          className="min-h-11 min-w-0 flex-1 bg-transparent font-hand text-base text-ink outline-none placeholder:text-ink-3"
-        />
-      </div>
 
       <div className="flex flex-wrap gap-x-5">
         {!placed && actions.place && (
@@ -130,4 +119,12 @@ export default function ItemDetail({ item, placed = false }: { item: Item; place
       {message && <p className="m-0 text-[13px] text-ink-3">{message}</p>}
     </div>
   )
+}
+
+/** メモの欄の高さを中身に合わせる。上限は CSS の max-h(画面の高さの半分)で、超えたら中で送る */
+function fitHeight(el: HTMLTextAreaElement | null): void {
+  if (!el) return
+  el.style.height = 'auto'
+  // 下線(border)の分も足す。足さないと、1px 足りずに中で送る印が出る
+  el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`
 }
