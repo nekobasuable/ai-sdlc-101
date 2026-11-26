@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addDays, weekStartOf } from './slot'
-import { cellKey, slackRatio, weekGrid } from './week-grid'
+import { cellKey, daysGrid, slackRatio, todayOf, weekGrid } from './week-grid'
 
 const TOKYO = 'Asia/Tokyo'
 // 2026-11-25(水)の東京の時刻を UTC の Date にする
@@ -48,7 +48,42 @@ describe('slackRatio', () => {
   })
 
   it('置いたブロックの分だけ余白が減る', () => {
-    const filled = new Set([cellKey(0, 'morning'), cellKey(0, 'noon'), cellKey(1, 'morning')])
+    const filled = new Set([cellKey('2026-11-23', 'morning'), cellKey('2026-11-23', 'noon'), cellKey('2026-11-24', 'morning')])
     expect(slackRatio(grid, filled)).toBeCloseTo(39 / 42)
+  })
+})
+
+describe('daysGrid(今日から7日、plan/019)', () => {
+  // 2026-11-27(金)から7日: 金土日 / 月火水木。暦の週を2つまたぐ
+  const grid = daysGrid('2026-11-27', new Date(Date.UTC(2026, 10, 27, 10 - 9)), TOKYO)
+
+  it('初日から7日分を並べ、それぞれの暦の週と曜日を持つ', () => {
+    expect(grid.map((d) => d[0].date)).toEqual(['2026-11-27', '2026-11-28', '2026-11-29', '2026-11-30', '2026-12-01', '2026-12-02', '2026-12-03'])
+    expect(grid.map((d) => d[0].weekday)).toEqual([4, 5, 6, 0, 1, 2, 3])
+    expect(grid.map((d) => d[0].weekStart)).toEqual(['2026-11-23', '2026-11-23', '2026-11-23', '2026-11-30', '2026-11-30', '2026-11-30', '2026-11-30'])
+    expect(grid.map((d) => d[0].day)).toEqual([0, 1, 2, 3, 4, 5, 6])
+  })
+
+  it('初日は今日で、2日目からは未来', () => {
+    expect(grid[0].some((c) => c.time === 'now')).toBe(true)
+    expect(grid.slice(1).flat().every((c) => c.time === 'future')).toBe(true)
+  })
+
+  it('年をまたいでも、暦の週と曜日がずれない', () => {
+    const y = daysGrid('2026-12-30', new Date(Date.UTC(2026, 11, 30, 3)), TOKYO)
+    expect(y.map((d) => d[0].date)).toEqual(['2026-12-30', '2026-12-31', '2027-01-01', '2027-01-02', '2027-01-03', '2027-01-04', '2027-01-05'])
+    expect(y[5][0]).toMatchObject({ weekday: 0, weekStart: '2027-01-04' })
+    expect(y[4][0]).toMatchObject({ weekday: 6, weekStart: '2026-12-28' })
+  })
+
+  it('weekGrid は月曜から呼んだ daysGrid と同じ(省みる画面は変わらない)', () => {
+    const at = new Date(Date.UTC(2026, 10, 25, 0))
+    expect(weekGrid('2026-11-23', at, TOKYO)).toEqual(daysGrid('2026-11-23', at, TOKYO))
+  })
+
+  it('今日の日付は、設定のタイムゾーンで決まる', () => {
+    const instant = new Date('2026-11-26T20:00:00Z')
+    expect(todayOf(instant, 'Asia/Tokyo')).toBe('2026-11-27')
+    expect(todayOf(instant, 'America/Los_Angeles')).toBe('2026-11-26')
   })
 })

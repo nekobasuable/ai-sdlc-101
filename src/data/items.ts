@@ -1,6 +1,6 @@
 import type { Area } from '../domain/areas'
 import type { Quadrant } from '../domain/quadrant'
-import type { Slot } from '../domain/slot'
+import { addDays, type Slot } from '../domain/slot'
 import type { Database } from './database.types'
 import { failure, toResult, type DataResult } from './result'
 import { supabase } from './supabase'
@@ -147,7 +147,8 @@ export async function unplace(entry: NowEntry): Promise<DataResult<null>> {
   return toResult(null, error)
 }
 
-export type WeekEntry = NowEntry & { day: number; blockId: string }
+/** day は暦の週の曜日(0 = 月曜)。date はその日付(plan/019) */
+export type WeekEntry = NowEntry & { day: number; date: string; blockId: string }
 
 /** 週に置いた項目(R13a) */
 export async function listWeek(weekStart: string): Promise<DataResult<WeekEntry[]>> {
@@ -162,9 +163,35 @@ export async function listWeek(weekStart: string): Promise<DataResult<WeekEntry[
     ok: true,
     data: data.flatMap((p) =>
       p.item && !p.item.deleted_at
-        ? [{ placementId: p.id, day: p.day, blockId: p.block_id, result: p.result as PlacementResult | null, item: toItem(p.item) }]
+        ? [{ placementId: p.id, day: p.day, date: addDays(weekStart, p.day), blockId: p.block_id, result: p.result as PlacementResult | null, item: toItem(p.item) }]
         : [],
     ),
+  }
+}
+
+/**
+ * start の日から7日に置いた項目(spec R8 改、plan/019)。7日は暦の週を最大2つまたぐので、その週の分をまとめて読み、日付で絞る。
+ * 保存の形(暦の週の月曜と曜日)は変えない
+ */
+export async function listPlacementsFrom(start: string): Promise<DataResult<WeekEntry[]>> {
+  if (!supabase) return NOT_CONFIGURED
+  const end = addDays(start, 6)
+  const weekday = (d: string) => (new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7
+  const weeks = [...new Set([addDays(start, -weekday(start)), addDays(end, -weekday(end))])]
+  const { data, error } = await supabase
+    .from('placements')
+    .select('id, week_start, day, block_id, result, item:items(id, body, status, area, quadrant, due_date, area_source, quadrant_source, ai_reason, deleted_at)')
+    .in('week_start', weeks)
+    .order('created_at')
+  if (error) return failure(error)
+  return {
+    ok: true,
+    data: data.flatMap((p) => {
+      const date = addDays(p.week_start, p.day)
+      return p.item && !p.item.deleted_at && date >= start && date <= end
+        ? [{ placementId: p.id, day: p.day, date, blockId: p.block_id, result: p.result as PlacementResult | null, item: toItem(p.item) }]
+        : []
+    }),
   }
 }
 

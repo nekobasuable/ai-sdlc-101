@@ -1,55 +1,56 @@
 import { useEffect, useState } from 'react'
 import { fetchEvents } from '../data/calendar'
-import { listCandidates, listDue, listWeek, placeNow, unplace, type Item, type WeekEntry } from '../data/items'
+import { listCandidates, listDue, listPlacementsFrom, placeNow, unplace, type Item, type WeekEntry } from '../data/items'
 import type { AppSettings } from '../data/settings'
 import { placeEvents, type PlacedEvent } from '../domain/calendar-blocks'
 import { secondQuadrantFirst } from '../domain/quadrant'
-import { addDays, weekStartOf } from '../domain/slot'
+import { addDays } from '../domain/slot'
 import { zonedMidnight } from '../domain/time'
-import { cellKey, LOW_SLACK, slackRatio, weekGrid, type Cell } from '../domain/week-grid'
+import { cellKey, daysGrid, LOW_SLACK, slackRatio, todayOf, type Cell } from '../domain/week-grid'
 import QuoteLine from './QuoteLine'
 
 const WEEKDAYS = ['月', '火', '水', '木', '金', '土', '日']
 const RESULT_LABEL: Record<string, string> = { done: '終えた', partial: '途中まで', not_done: '手放した' }
 
-// 週(R8、R10、R11、R13a)。1週間は「今」の積み重ねとして見せる(P7)。見た目はスキル life-dashboard-look
+// 週(R8 改、R10、R11、R13a)。今日から7日を、「今」の積み重ねとして見せる(P7、plan/019)。見た目はスキル life-dashboard-look
 export default function WeekView({ settings, now, version: outer, onChanged }: { settings: AppSettings; now: Date; version: number; onChanged: () => void }) {
-  const [offset, setOffset] = useState(0) // 0 = 今週、1 = 来週
-  // どの週の内容かを一緒に持ち、週を切り替えた直後に前の週の内容を重ねて見せない
-  const [loaded, setLoaded] = useState<{ weekStart: string; entries: WeekEntry[] } | null>(null)
+  const [offset, setOffset] = useState(0) // 0 = 今日から7日、1 = その先の7日
+  // どの7日の内容かを一緒に持ち、切り替えた直後に前の7日の内容を重ねて見せない
+  const [loaded, setLoaded] = useState<{ start: string; entries: WeekEntry[] } | null>(null)
   const [candidates, setCandidates] = useState<Item[]>([])
-  const [events, setEvents] = useState<{ weekStart: string; placed: PlacedEvent[] } | null>(null)
-  const [due, setDue] = useState<{ weekStart: string; items: Item[] } | null>(null)
+  const [events, setEvents] = useState<{ start: string; placed: PlacedEvent[] } | null>(null)
+  const [due, setDue] = useState<{ start: string; items: Item[] } | null>(null)
   const [drawing, setDrawing] = useState<{ day: number; blockId: string | null } | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [version, setVersion] = useState(0)
 
-  const weekStart = addDays(weekStartOf(now, settings.timeZone), offset * 7)
-  const grid = weekGrid(weekStart, now, settings.timeZone, settings.blocks)
+  const start = addDays(todayOf(now, settings.timeZone), offset * 7)
+  const grid = daysGrid(start, now, settings.timeZone, settings.blocks)
 
   useEffect(() => {
     let active = true
-    void Promise.all([listWeek(weekStart), listCandidates()]).then(([week, cands]) => {
+    void Promise.all([listPlacementsFrom(start), listCandidates()]).then(([week, cands]) => {
       if (!active) return
       if (!week.ok) return setMessage(week.message)
       if (!cands.ok) return setMessage(cands.message)
-      setLoaded({ weekStart, entries: week.data })
+      setLoaded({ start, entries: week.data })
       setCandidates(cands.data)
     })
     // 締め切りのあるもの(spec R39)
-    void listDue({ from: weekStart, to: addDays(weekStart, 6) }).then((res) => {
-      if (active && res.ok) setDue({ weekStart, items: res.data })
+    void listDue({ from: start, to: addDays(start, 6) }).then((res) => {
+      if (active && res.ok) setDue({ start, items: res.data })
     })
     // カレンダーの予定(spec R9)。読めなくても週の画面は使える
-    const [y, m, d] = weekStart.split('-').map(Number)
-    const next = addDays(weekStart, 7).split('-').map(Number)
+    // placeEvents は初日からの日数で並べるので、7日の初日を渡す
+    const [y, m, d] = start.split('-').map(Number)
+    const next = addDays(start, 7).split('-').map(Number)
     void fetchEvents(zonedMidnight(y, m, d, settings.timeZone), zonedMidnight(next[0], next[1], next[2], settings.timeZone)).then((res) => {
-      if (active && res.ok) setEvents({ weekStart, placed: placeEvents(res.data, weekStart, settings.timeZone, settings.blocks) })
+      if (active && res.ok) setEvents({ start, placed: placeEvents(res.data, start, settings.timeZone, settings.blocks) })
     })
     return () => {
       active = false
     }
-  }, [weekStart, version, outer, settings.timeZone, settings.blocks])
+  }, [start, version, outer, settings.timeZone, settings.blocks])
 
   async function run(action: Promise<{ ok: boolean; message?: string }>) {
     const res = await action
@@ -60,23 +61,23 @@ export default function WeekView({ settings, now, version: outer, onChanged }: {
     onChanged()
   }
 
-  const entries = loaded?.weekStart === weekStart ? loaded.entries : []
-  const weekEvents = events?.weekStart === weekStart ? events.placed : []
-  const weekDue = due?.weekStart === weekStart ? due.items : []
-  const filled = new Set(entries.map((e) => cellKey(e.day, e.blockId)))
+  const entries = loaded?.start === start ? loaded.entries : []
+  const weekEvents = events?.start === start ? events.placed : []
+  const weekDue = due?.start === start ? due.items : []
+  const filled = new Set(entries.map((e) => cellKey(e.date, e.blockId)))
   const slack = slackRatio(grid, filled)
 
   return (
     <section className="flex flex-col gap-10">
       <header>
         <div className="flex items-baseline justify-between">
-          <h1 className="m-0 font-mincho text-[26px] font-normal tracking-[0.06em]">{offset === 0 ? '今週' : '来週'}</h1>
+          <h1 className="m-0 font-mincho text-[26px] font-normal tracking-[0.06em]">{offset === 0 ? 'これからの7日' : 'その先の7日'}</h1>
           <div className="flex gap-5 font-hand text-[15px]">
             <button type="button" onClick={() => setOffset(0)} className={`min-h-11 ${offset === 0 ? 'text-ink' : 'text-ink-3'}`}>
-              今週
+              これから
             </button>
             <button type="button" onClick={() => setOffset(1)} className={`min-h-11 ${offset === 1 ? 'text-ink' : 'text-ink-3'}`}>
-              来週
+              その先
             </button>
           </div>
         </div>
@@ -88,7 +89,7 @@ export default function WeekView({ settings, now, version: outer, onChanged }: {
       </header>
 
       {message && <p className="m-0 text-sm text-ink-3">{message}</p>}
-      {loaded?.weekStart !== weekStart ? (
+      {loaded?.start !== start ? (
         <p className="m-0 text-sm text-ink-3">開いています…</p>
       ) : (
         <div className="flex flex-col gap-8">
@@ -96,14 +97,14 @@ export default function WeekView({ settings, now, version: outer, onChanged }: {
             <Day
               key={day[0].date}
               cells={day}
-              entries={entries.filter((e) => e.day === day[0].day)}
+              entries={entries.filter((e) => e.date === day[0].date)}
               events={weekEvents.filter((e) => e.day === day[0].day)}
               due={weekDue.filter((i) => i.dueDate === day[0].date)}
               candidates={candidates}
               drawing={drawing?.day === day[0].day ? drawing : null}
               onDraw={(blockId) => setDrawing({ day: day[0].day, blockId })}
               onClose={() => setDrawing(null)}
-              onPlace={(item, blockId) => run(placeNow(item.id, { weekStart, day: day[0].day, blockId }))}
+              onPlace={(item, blockId) => run(placeNow(item.id, { weekStart: day[0].weekStart, day: day[0].weekday, blockId }))}
               onUnplace={(entry) => run(unplace(entry))}
             />
           ))}
@@ -153,7 +154,7 @@ function Day({
     <div className="flex gap-5">
       <div className={`w-11 shrink-0 font-mincho ${isPast ? 'text-ink-3' : isToday ? 'text-ink' : 'text-ink-2'}`}>
         <div className="text-xl">{Number(first.date.slice(8))}</div>
-        <div className="text-[13px]">{WEEKDAYS[first.day]}</div>
+        <div className="text-[13px]">{WEEKDAYS[first.weekday]}</div>
         {openBlocks.length > 0 && (
           <button
             type="button"
