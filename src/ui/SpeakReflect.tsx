@@ -26,9 +26,16 @@ export default function SpeakReflect({ onKeep, onMood }: { onKeep: (text: string
   const [message, setMessage] = useState<string | null>(null)
   const [nodding, setNodding] = useState(false)
   const mood: OwlMood = speech.listening ? 'listen' : busy ? 'think' : nodding ? 'nod' : null
-  useEffect(() => onMood?.(mood), [mood]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    onMood?.(mood)
+  }, [mood]) // eslint-disable-line react-hooks/exhaustive-deps
   // 週を切り替えて作り直されるとき、ふくろうを元の姿に戻す(PR #17 のレビューの指摘)
-  useEffect(() => () => onMood?.(null), []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(
+    () => () => {
+      onMood?.(null)
+    },
+    [], // eslint-disable-line react-hooks/exhaustive-deps
+  )
   useEffect(() => {
     if (!nodding) return
     const t = window.setTimeout(() => setNodding(false), 2500)

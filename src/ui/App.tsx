@@ -19,6 +19,7 @@ import type { Classify } from './ItemMeta'
 import NowView from './NowView'
 import Owl from './Owl'
 import Sky from './Sky'
+import { newlyFinished, resultsOf } from '../domain/finished'
 import { PAPER, periodOf } from '../domain/period'
 import DailyNote from './DailyNote'
 import QuoteLine from './QuoteLine'
@@ -63,11 +64,8 @@ function Home() {
   const [owlNudge, setOwlNudge] = useState(0)
   const lastResults = useRef<Map<string, string | null>>(new Map())
   useEffect(() => {
-    const finished = entries.some((e) => {
-      const before = lastResults.current.get(e.placementId)
-      return before !== undefined && before !== 'done' && e.result === 'done'
-    })
-    lastResults.current = new Map(entries.map((e) => [e.placementId, e.result]))
+    const finished = newlyFinished(lastResults.current, entries)
+    lastResults.current = resultsOf(entries)
     if (finished) setOwlNudge((n) => n + 1)
   }, [entries])
   // 項目の変更や、ブロックの切り替わり(slotKey の変化)のたびに読み直す
