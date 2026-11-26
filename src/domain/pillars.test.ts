@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_PILLARS, MAX_PILLARS, newPillarId, normalizePillars, parsePillars, pillarLabel } from './pillars'
+import { DEFAULT_PILLARS, MAX_PILLARS, newPillarId, normalizePillars, parsePillars, pillarIssue, pillarLabel } from './pillars'
 
 describe('pillars', () => {
   it('最初は6つ', () => {
@@ -26,5 +26,11 @@ describe('pillars', () => {
     expect(parsePillars(null)).toEqual(DEFAULT_PILLARS)
     expect(parsePillars([{ id: 1 }])).toEqual(DEFAULT_PILLARS)
     expect(parsePillars([{ id: 'x', label: '読書' }])).toEqual([{ id: 'x', label: '読書' }])
+  })
+
+  it('空の名前や重なった名前は、保存の前に知らせる(PR #20 のレビューの Nit)', () => {
+    expect(pillarIssue(DEFAULT_PILLARS)).toBeNull()
+    expect(pillarIssue([{ id: 'a', label: '健康' }, { id: 'b', label: ' 健康 ' }])).toContain('健康')
+    expect(pillarIssue([{ id: 'a', label: '  ' }])).not.toBeNull()
   })
 })

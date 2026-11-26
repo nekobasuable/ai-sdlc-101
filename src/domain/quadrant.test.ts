@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fromQuadrant, secondQuadrantFirst, toQuadrant } from './quadrant'
+import { fromQuadrant, groupByQuadrant, QUADRANT_NAMES, secondQuadrantFirst, toQuadrant } from './quadrant'
 
 describe('quadrant', () => {
   it('2つの問いから象限を決める。大切で急がないのは第2象限', () => {
@@ -17,5 +17,27 @@ describe('quadrant', () => {
   it('第2象限を先に並べ、ほかの順は保つ', () => {
     const items = [{ id: 'a', quadrant: 1 }, { id: 'b', quadrant: 2 }, { id: 'c', quadrant: null }, { id: 'd', quadrant: 2 }]
     expect(secondQuadrantFirst(items).map((i) => i.id)).toEqual(['b', 'd', 'a', 'c'])
+  })
+})
+
+describe('groupByQuadrant(四つに分ける、plan/022 B)', () => {
+  it('4つの局面と、まだ分けていないものに分け、それぞれの順を保つ', () => {
+    const items = [
+      { id: 'a', quadrant: 1 },
+      { id: 'b', quadrant: 2 },
+      { id: 'c', quadrant: null },
+      { id: 'd', quadrant: 2 },
+      { id: 'e', quadrant: 4 },
+    ]
+    const { byQuadrant, unsorted } = groupByQuadrant(items)
+    expect(byQuadrant[1].map((i) => i.id)).toEqual(['a'])
+    expect(byQuadrant[2].map((i) => i.id)).toEqual(['b', 'd'])
+    expect(byQuadrant[3]).toEqual([])
+    expect(byQuadrant[4].map((i) => i.id)).toEqual(['e'])
+    expect(unsorted.map((i) => i.id)).toEqual(['c'])
+  })
+
+  it('局面の名前は4つ', () => {
+    expect(Object.values(QUADRANT_NAMES)).toEqual(['大切で急ぐ', '大切で急がない', '急ぐだけ', 'どちらでもない'])
   })
 })
