@@ -72,7 +72,7 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
   return (
     <section>
       <div className="mb-1 flex items-center justify-between">
-        <label htmlFor="speak" className="text-xs tracking-[0.18em] text-ink-3">
+        <label htmlFor="speak" className="label">
           話して省みる
         </label>
         {speech.supported && !draft && <MicButton listening={speech.listening} onToggle={toggleMic} />}
@@ -90,8 +90,8 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
         maxLength={MAX_INPUT}
         className="w-full resize-none border-b border-rule bg-transparent py-2 font-hand text-base leading-loose text-ink outline-none placeholder:text-ink-3"
       />
-      {spoken.length > MAX_INPUT - 300 && <p className="m-0 mt-1 text-xs text-ink-3">あと {MAX_INPUT - spoken.length} 文字まで。</p>}
-      {speech.error && <p className="m-0 mt-1 text-xs text-ink-3">{speech.error}</p>}
+      {spoken.length > MAX_INPUT - 300 && <p className="m-0 mt-1 text-[13px] text-ink-3">あと {MAX_INPUT - spoken.length} 文字まで。</p>}
+      {speech.error && <p className="m-0 mt-1 text-[13px] text-ink-3">{speech.error}</p>}
       {!draft && (
         <div className="mt-1 flex gap-5">
           <button type="button" disabled={busy || !spoken.trim()} onClick={arrange} className={link}>
@@ -106,7 +106,7 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
       {draft && (
         <div className="mt-6 flex flex-col gap-6 border-l border-rule pl-4">
           <div>
-            <label htmlFor="draft-words" className="mb-1 block text-xs tracking-[0.18em] text-ink-3">
+            <label htmlFor="draft-words" className="mb-1 block label">
               この週の言葉
             </label>
             <textarea
@@ -119,7 +119,7 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
           </div>
           {draft.insights.length > 0 && (
             <div>
-              <p className="m-0 mb-1 text-xs tracking-[0.18em] text-ink-3">気づいたこと</p>
+              <p className="m-0 mb-1 label">気づいたこと</p>
               {draft.insights.map((t, i) => (
                 <input
                   key={i}
@@ -133,7 +133,7 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
           )}
           {draft.carry.length > 0 && (
             <div>
-              <p className="m-0 mb-1 text-xs tracking-[0.18em] text-ink-3">来週に持っていきたいこと</p>
+              <p className="m-0 mb-1 label">来週に持っていきたいこと</p>
               {draft.carry.map((t, i) => (
                 <label key={i} className="flex min-h-11 items-center gap-3 text-[15px] text-ink-2">
                   <input
@@ -144,12 +144,12 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
                   {t}
                 </label>
               ))}
-              <p className="m-0 text-xs text-ink-3">選んだものは、やることに入る。</p>
+              <p className="m-0 text-[13px] text-ink-3">選んだものは、やることに入る。</p>
             </div>
           )}
           {draft.letGo.length > 0 && (
             <div>
-              <p className="m-0 mb-1 text-xs tracking-[0.18em] text-ink-3">手放してよさそうなこと</p>
+              <p className="m-0 mb-1 label">手放してよさそうなこと</p>
               <p className="m-0 text-[15px] leading-relaxed text-ink-2">{draft.letGo.join('、')}。</p>
             </div>
           )}
@@ -181,7 +181,7 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
           </div>
         </div>
       )}
-      {message && <p className="m-0 mt-2 text-xs text-ink-3">{message}</p>}
+      {message && <p className="m-0 mt-2 text-[13px] text-ink-3">{message}</p>}
     </section>
   )
 }

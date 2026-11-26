@@ -14,6 +14,13 @@
   --font-sans: "Zen Kaku Gothic New", sans-serif;
 }
 
+/* 小さな見出し(「午前のあいだ」「今日のこれから」など)。読みやすさを優先して、字間を広げすぎない(spec R46、plan/016) */
+@utility label {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--color-ink-2);
+}
+
 /* 日本語の見出しを、語の途中ではなく文節で折り返す(plan/015)。使えないブラウザでは、ふつうの折り返しになる */
 h1,
 h2 {
@@ -26,5 +33,5 @@ body {
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
-  font-weight: 300;
+  font-weight: 400;
 }

@@ -37,7 +37,7 @@ export default function NowView({
   const large = entries.length <= 1
   return (
     <section className="relative">
-      <h1 className="m-0 text-xs font-normal tracking-[0.18em] text-ink-3">{block.label}のあいだ</h1>
+      <h1 className="m-0 label font-normal">{block.label}のあいだ</h1>
       {owl && <Owl pose={owl} className="absolute -top-8 right-2" />}
       {events.length > 0 && <p className="m-0 mt-2 text-sm text-ink-3">この時間には、{events.join('、')}がある。</p>}
       {entries.length === 0 ? (

@@ -179,8 +179,8 @@ function Home() {
 
           <aside className="flex flex-col gap-12 lg:border-l lg:border-rule-soft lg:pl-12">
             <section className="relative">
-              <p className="m-0 mb-4 text-xs tracking-[0.18em] text-ink-3">今日のこれから</p>
-              <div className="flex flex-col gap-3 text-[15px] leading-relaxed text-ink-2">
+              <p className="m-0 mb-4 label">今日のこれから</p>
+              <div className="flex flex-col gap-3 text-base leading-relaxed text-ink">
                 {rest.planned.map((r) => (
                   <span key={r.label}>
                     {r.label}には、{r.bodies.join('、')}。

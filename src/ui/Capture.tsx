@@ -34,7 +34,7 @@ export default function Capture({ onAdded, onError, className = '' }: { onAdded:
   return (
     <>
     {speech.error && (
-      <p className="m-0 pt-1 text-xs text-ink-3" role="status">
+      <p className="m-0 pt-1 text-[13px] text-ink-3" role="status">
         {speech.error}
       </p>
     )}

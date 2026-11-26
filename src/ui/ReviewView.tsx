@@ -95,7 +95,7 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
                 <div key={date} className="flex gap-5">
                   <div className="w-11 shrink-0 font-mincho text-ink-2">
                     <div className="text-xl">{Number(date.slice(8))}</div>
-                    <div className="text-xs">{WEEKDAYS[day[0].day]}</div>
+                    <div className="text-[13px]">{WEEKDAYS[day[0].day]}</div>
                   </div>
                   <div className="flex flex-1 flex-col gap-1.5 pt-1 text-[15px] leading-relaxed">
                     {done.map((e) => (
@@ -105,7 +105,7 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
                       </span>
                     ))}
                     {note && <span className="font-hand text-ink">「{note}」</span>}
-                    {done.length === 0 && !note && <span className="font-mincho text-sm tracking-[0.2em] text-ink-3">静かな一日</span>}
+                    {done.length === 0 && !note && <span className="font-mincho text-sm tracking-[0.1em] text-ink-3">静かな一日</span>}
                   </div>
                 </div>
               )
@@ -114,13 +114,13 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
 
           {otherDone.length > 0 && (
             <section>
-              <h2 className="m-0 mb-3 text-xs font-normal tracking-[0.18em] text-ink-3">ほかに終えたこと</h2>
+              <h2 className="m-0 mb-3 label font-normal">ほかに終えたこと</h2>
               <p className="m-0 text-[15px] leading-relaxed text-ink-2">{otherDone.map((i) => i.body).join('、')}。</p>
             </section>
           )}
 
           <section>
-            <h2 className="m-0 mb-3 text-xs font-normal tracking-[0.18em] text-ink-3">時間の使い方</h2>
+            <h2 className="m-0 mb-3 label font-normal">時間の使い方</h2>
             {spent.byQuadrant.length === 0 ? (
               <p className="m-0 text-[15px] text-ink-3">まだ、数えるほどの時間はない。</p>
             ) : (
@@ -143,7 +143,7 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
 
           {dropped.length > 0 && (
             <section>
-              <h2 className="m-0 mb-3 text-xs font-normal tracking-[0.18em] text-ink-3">手放したこと</h2>
+              <h2 className="m-0 mb-3 label font-normal">手放したこと</h2>
               <ul className="m-0 flex list-none flex-col p-0">
                 {dropped.map((e) => (
                   <li key={e.item.id} className="flex flex-wrap items-baseline justify-between gap-x-4 text-[15px] text-ink-2">
@@ -159,14 +159,14 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
                   </li>
                 ))}
               </ul>
-              {notice && <p className="m-0 mt-1 text-xs text-ink-3">{notice}</p>}
+              {notice && <p className="m-0 mt-1 text-[13px] text-ink-3">{notice}</p>}
             </section>
           )}
 
           <SpeakReflect key={weekStart} onKeep={appendToMemo} />
 
           <section>
-            <label htmlFor="weekly-memo" className="mb-2 block text-xs tracking-[0.18em] text-ink-3">
+            <label htmlFor="weekly-memo" className="mb-2 block label">
               この週のこと
             </label>
             <textarea
@@ -184,7 +184,7 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
               }}
               className="w-full resize-none border-b border-rule bg-transparent py-2 font-hand text-base leading-loose text-ink outline-none"
             />
-            {memoUnsaved && <p className="m-0 mt-1 text-xs text-ink-3">まだ残せていない。つながったら、もう一度ここを離れると残る。</p>}
+            {memoUnsaved && <p className="m-0 mt-1 text-[13px] text-ink-3">まだ残せていない。つながったら、もう一度ここを離れると残る。</p>}
           </section>
         </>
       )}

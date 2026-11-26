@@ -24,7 +24,7 @@ export default function DailyNote({ date }: { date: string }) {
   const value = draft ?? saved
   return (
     <section>
-      <label htmlFor="daily-note" className="mb-2 block text-xs tracking-[0.18em] text-ink-3">
+      <label htmlFor="daily-note" className="mb-2 block label">
         今日のことを、一言だけ
       </label>
       <input
@@ -43,7 +43,7 @@ export default function DailyNote({ date }: { date: string }) {
         }}
         className="min-h-11 w-full border-b border-rule bg-transparent py-2 font-hand text-base text-ink outline-none"
       />
-      {unsaved && <p className="m-0 mt-1 text-xs text-ink-3">まだ残せていない。つながったら、もう一度ここを離れると残る。</p>}
+      {unsaved && <p className="m-0 mt-1 text-[13px] text-ink-3">まだ残せていない。つながったら、もう一度ここを離れると残る。</p>}
     </section>
   )
 }

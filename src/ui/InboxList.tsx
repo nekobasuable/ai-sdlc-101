@@ -35,7 +35,7 @@ export default function InboxList({ items, canPlace, onPlace, onClassify }: { it
   }
   return (
     <section>
-      <button type="button" onClick={toggle} aria-expanded={open} className="min-h-11 text-[13px] tracking-[0.18em] text-ink-2">
+      <button type="button" onClick={toggle} aria-expanded={open} className="min-h-11 label">
         やること　{items.length}
       </button>
       {open && (
