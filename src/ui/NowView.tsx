@@ -29,6 +29,8 @@ export default function NowView({
   onClassify: Classify
 }) {
   const [editing, setEditing] = useState<string | null>(null)
+  // いま終えたものだけ「終えた。」を書き込む動きにする。開き直したときは、書き込み済みとして静かに見せる(PR #17 のレビューの Nit)
+  const [justDone, setJustDone] = useState<string | null>(null)
   if (!block) {
     return (
       <section className="relative">
@@ -57,7 +59,10 @@ export default function NowView({
                 <HandCircle
                   checked={entry.result === 'done'}
                   label={entry.result === 'done' ? '終えた(押すと途中までに戻す)' : '終えた'}
-                  onClick={() => onResult(entry, entry.result === 'done' ? 'partial' : 'done')}
+                  onClick={() => {
+                    if (entry.result !== 'done') setJustDone(entry.placementId)
+                    onResult(entry, entry.result === 'done' ? 'partial' : 'done')
+                  }}
                 />
                 <h2
                   className={`m-0 font-mincho leading-relaxed font-normal tracking-wide ${large ? 'text-[30px] lg:text-[44px]' : 'text-2xl lg:text-3xl'} ${entry.result === 'done' ? 'text-ink-3' : ''}`}
@@ -73,7 +78,7 @@ export default function NowView({
                 </h2>
               </div>
               {/* 終えたら、手書きで一言だけ添える。評価の言葉は付けない(plan/013) */}
-              {entry.result === 'done' && <p className="ink-write m-0 ml-12 font-hand text-[17px] text-ink">終えた。</p>}
+              {entry.result === 'done' && <p className={`m-0 ml-12 font-hand text-[17px] text-ink ${justDone === entry.placementId ? 'ink-write' : ''}`}>終えた。</p>}
               {editing === entry.item.id && (
                 <div className="ml-12">
                   <ItemMeta item={entry.item} onClassify={onClassify} />
