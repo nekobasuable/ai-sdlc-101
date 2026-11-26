@@ -14,6 +14,17 @@
   --font-sans: "Zen Kaku Gothic New", sans-serif;
 }
 
+/* 押せるところでは、ポインターを手の形にする。Tailwind v4 はボタンを矢印のままにするため(plan/017 のずれに記録) */
+@layer base {
+  button:not(:disabled),
+  [role="button"],
+  label[for],
+  input[type="checkbox"],
+  summary {
+    cursor: pointer;
+  }
+}
+
 /* 小さな見出し(「午前のあいだ」「今日のこれから」など)。読みやすさを優先して、字間を広げすぎない(spec R46、plan/016) */
 @utility label {
   font-size: 13px;
