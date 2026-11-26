@@ -42,7 +42,7 @@ export default function ItemMeta({ item, onClassify }: { item: Item; onClassify:
       </div>
       {hasGuess && (
         <p className="m-0 pb-1 font-sans text-[13px] text-ink-3">
-          点線は見立て{item.aiReason ? `(${item.aiReason})` : ''}。違えば押して直す。
+          点線は見立て{item.aiReason ? `(${item.aiReason})` : ''}。違えば、押して直せる。
         </p>
       )}
     </div>

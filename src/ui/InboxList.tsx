@@ -31,6 +31,8 @@ export default function InboxList({ items, canPlace, onPlace, onClassify }: { it
   const [editing, setEditing] = useState<string | null>(null)
   const { shown, hidden } = previewList(sortForList(items), showAll)
   const toggle = () => {
+    // 閉じたら、次に開いたときはまた最初の数件だけ見せる(PR #11 のレビューの Nit、P1)
+    if (open) setShowAll(false)
     writeOpen(!open)
     setOpen(!open)
   }
