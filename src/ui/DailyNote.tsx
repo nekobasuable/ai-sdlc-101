@@ -42,6 +42,18 @@ export default function DailyNote({ slot }: { slot: DailyNoteSlot }) {
       setDraft(null)
     })
   }
+  // 11時に欄が消えるとき(または日付が変わるとき)、離れる前の下書きも残す(PR #25 のレビューの Nit)
+  const pending = useRef<{ date: string; text: string | null; saved: string }>({ date, text: null, saved })
+  useEffect(() => {
+    pending.current = { date, text: draft, saved }
+  })
+  useEffect(
+    () => () => {
+      const { date: d, text, saved: s } = pending.current
+      if (text !== null && text !== s) void saveDailyNote(d, text)
+    },
+    [date],
+  )
   const toggleMic = () => {
     if (speech.listening) return speech.stop()
     setBase(value)
@@ -59,18 +71,18 @@ export default function DailyNote({ slot }: { slot: DailyNoteSlot }) {
         {label}のことを、一言だけ
       </label>
       <div className="flex items-center gap-2 border-b border-rule">
-      <input
-        id="daily-note"
-        value={value}
-        onChange={(e) => {
-          // 手で直したら聞き取りを止め、直した文字を残す
-          if (speech.listening) speech.stop()
-          setDraft(e.target.value)
-        }}
-        onBlur={() => save(draft)}
-        className="min-h-11 min-w-0 flex-1 bg-transparent py-2 font-hand text-base text-ink outline-none"
-      />
-      {speech.supported && <MicButton listening={speech.listening} onToggle={toggleMic} />}
+        <input
+          id="daily-note"
+          value={value}
+          onChange={(e) => {
+            // 手で直したら聞き取りを止め、直した文字を残す
+            if (speech.listening) speech.stop()
+            setDraft(e.target.value)
+          }}
+          onBlur={() => save(draft)}
+          className="min-h-11 min-w-0 flex-1 bg-transparent py-2 font-hand text-base text-ink outline-none"
+        />
+        {speech.supported && <MicButton listening={speech.listening} onToggle={toggleMic} />}
       </div>
       {speech.error && <p className="m-0 mt-1 text-[13px] text-ink-3">{speech.error}</p>}
       {unsaved && <p className="m-0 mt-1 text-[13px] text-ink-3">まだ残せていない。つながったら、もう一度ここを離れると残る。</p>}

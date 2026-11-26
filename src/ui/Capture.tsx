@@ -98,23 +98,23 @@ export default function Capture({
     )}
     <form onSubmit={submit} className={className}>
       <div className="flex items-center gap-2 border-b border-rule">
-      <label htmlFor="capture" className="sr-only">
-        タスクの追加
-      </label>
-      <input
-        ref={inputRef}
-        id="capture"
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        placeholder="タスクの追加"
-        enterKeyHint="send"
-        className="min-h-11 min-w-0 flex-1 bg-transparent py-3 font-hand text-base text-ink outline-none placeholder:text-ink-3"
-      />
-      <button type="submit" disabled={saving} aria-label="入れる" className="flex size-11 items-center justify-center text-ink-3 disabled:opacity-40">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" aria-hidden="true">
-          <path d="M5 12h14M13 6l6 6-6 6" />
-        </svg>
-      </button>
+        <label htmlFor="capture" className="sr-only">
+          タスクの追加
+        </label>
+        <input
+          ref={inputRef}
+          id="capture"
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="タスクの追加"
+          enterKeyHint="send"
+          className="min-h-11 min-w-0 flex-1 bg-transparent py-3 font-hand text-base text-ink outline-none placeholder:text-ink-3"
+        />
+        <button type="submit" disabled={saving} aria-label="入れる" className="flex size-11 items-center justify-center text-ink-3 disabled:opacity-40">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </button>
       </div>
       {showExtras && (
         <div className="fade-up flex flex-col">
