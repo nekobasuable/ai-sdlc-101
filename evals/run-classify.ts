@@ -32,7 +32,7 @@ const { today, cases, pillars } = JSON.parse(readFileSync(new URL('./classify/ca
 let raw: unknown
 try {
   // 無料枠の回数の上限にかからないよう、例はまとめて1回で送る(本番と同じ形)
-  raw = await generateJson({ provider: 'gemini', apiKey, model, fallbackModel, retries: 3 }, buildClassifyRequest(cases, today, pillars))
+  raw = await generateJson({ provider: 'gemini', apiKey, model, fallbackModel, retries: 3, timeoutMs: 90_000 }, buildClassifyRequest(cases, today, pillars))
 } catch (e) {
   report(`## AI の見立ての評価(${model})\n評価できなかった: 呼び出しの失敗(${e instanceof AiUnavailable ? e.message : String(e)})。時間をおいて回し直す`)
   process.exit(1)

@@ -51,7 +51,10 @@ Deno.serve(async (req) => {
 
   let suggestions: Map<number, Suggestion>
   try {
-    const raw = await generateJson({ provider: 'gemini', apiKey, model, fallbackModel, retries: 1 }, buildClassifyRequest(items.map((it) => ({ body: it.body, dueDate: it.due_date })), today, pillars))
+    const raw = await generateJson(
+      // まとめて送るので1回の待ち時間を長めにし、呼び直しはせず控えのモデルに1回だけ回す(最悪でも約 90 秒、Edge Functions の上限 150 秒の内側。PR #20)
+      { provider: 'gemini', apiKey, model, fallbackModel, retries: 0, timeoutMs: 45_000 },
+      buildClassifyRequest(items.map((it) => ({ body: it.body, dueDate: it.due_date })), today, pillars))
     suggestions = parseClassification(raw, items.length, pillars.map((p) => p.id))
   } catch (e) {
     // 混雑なら、次の同期でもう一度試す(ai_tried_at を付けない)。やることの文面はログに出さない
