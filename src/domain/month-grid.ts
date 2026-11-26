@@ -68,9 +68,10 @@ export function collectByDate(
   const at = (date: string) => map.get(date) ?? map.set(date, empty()).get(date)!
   for (const e of input.events) at(addDays(start, e.day)).events.push({ title: e.title, time: e.time })
   for (const d of input.due) if (d.dueDate) at(d.dueDate).due.push(d.body)
-  const placedDone = new Set(input.placed.filter((p) => p.result === 'done').map((p) => `${p.date}/${p.itemId}`))
+  // 置いた日と終えた日がずれても重ならないよう、項目の id で突き合わせる(PR #19 のレビューの Nit)
+  const placedDone = new Set(input.placed.filter((p) => p.result === 'done').map((p) => p.itemId))
   for (const p of input.placed) at(p.date).placed.push({ body: p.body, done: p.result === 'done' })
-  for (const d of input.done) if (!placedDone.has(`${d.date}/${d.itemId}`)) at(d.date).done.push(d.body)
+  for (const d of input.done) if (!placedDone.has(d.itemId)) at(d.date).done.push(d.body)
   for (const c of map.values()) c.events.sort((a, b) => (a.time ?? '').localeCompare(b.time ?? '', undefined, { numeric: true }))
   return map
 }

@@ -3,7 +3,7 @@
 // 受け取るもの: なし。返すもの: { suggested: 件数 }(見立てを書いた項目の数)
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { AiUnavailable, generateJson } from '../_shared/ai.ts'
-import { buildClassifyRequest, MAX_BATCH, parseClassification, planWrite, type Suggestion } from '../_shared/classify.ts'
+import { buildClassifyRequest, MAX_BATCH, parseClassification, planWrite, toPillars, type Suggestion } from '../_shared/classify.ts'
 import { signedInUser } from '../_shared/google-auth.ts'
 import { corsHeaders, json } from '../_shared/http.ts'
 
@@ -44,13 +44,15 @@ Deno.serve(async (req) => {
   }
   if (!items || items.length === 0) return json(req, 200, { suggested: 0 })
 
-  const { data: settings } = await admin.from('settings').select('time_zone').eq('user_id', userId).maybeSingle()
+  const { data: settings } = await admin.from('settings').select('time_zone, pillars').eq('user_id', userId).maybeSingle()
   const today = todayIn(settings?.time_zone ?? 'Asia/Tokyo')
+  // 本人の人生の柱(plan/022)。形が違えば、最初の6つ
+  const pillars = toPillars(settings?.pillars)
 
   let suggestions: Map<number, Suggestion>
   try {
-    const raw = await generateJson({ provider: 'gemini', apiKey, model, fallbackModel, retries: 1 }, buildClassifyRequest(items.map((it) => ({ body: it.body, dueDate: it.due_date })), today))
-    suggestions = parseClassification(raw, items.length)
+    const raw = await generateJson({ provider: 'gemini', apiKey, model, fallbackModel, retries: 1 }, buildClassifyRequest(items.map((it) => ({ body: it.body, dueDate: it.due_date })), today, pillars))
+    suggestions = parseClassification(raw, items.length, pillars.map((p) => p.id))
   } catch (e) {
     // 混雑なら、次の同期でもう一度試す(ai_tried_at を付けない)。やることの文面はログに出さない
     console.error('classify の失敗', e instanceof AiUnavailable ? e.message : 'unexpected')

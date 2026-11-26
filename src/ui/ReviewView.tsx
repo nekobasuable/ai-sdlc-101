@@ -63,7 +63,7 @@ export default function ReviewView({ settings, now, onOwlMood }: { settings: App
 
   const data = loaded?.weekStart === weekStart ? loaded : null
   const entries = data?.entries ?? []
-  const spent = timeSpent(entries, settings.blocks)
+  const spent = timeSpent(entries, settings.blocks, settings.pillars)
   const dropped = letGo(entries, grid)
   const placedIds = new Set(entries.map((e) => e.item.id))
   const otherDone = (data?.completed ?? []).filter((i) => !placedIds.has(i.id))
@@ -133,9 +133,10 @@ export default function ReviewView({ settings, now, onOwlMood }: { settings: App
                     </span>
                   ))}
                   <span className="mt-3" />
+                  {/* 人生の柱ごとに、何度、どれくらい時間を向けたか(spec R15 補、plan/022)。目標や評価は付けない */}
                   {spent.byArea.map((r) => (
                     <span key={`a-${r.label}`}>
-                      {r.label}に、{aboutHours(r.minutes)}。
+                      {r.label}には、{r.count}回、{aboutHours(r.minutes)}、時間を向けた。
                     </span>
                   ))}
                   <span className="mt-2 text-sm text-ink-3">終えた時間はそのまま、途中までは半分として数えている。</span>

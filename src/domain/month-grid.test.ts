@@ -70,4 +70,14 @@ describe('collectByDate', () => {
     expect(map.get('2026-11-26')?.placed).toEqual([{ body: '統計のレポート', done: true }, { body: '英語', done: false }])
     expect(map.get('2026-11-26')?.done).toEqual(['牛乳を買う'])
   })
+
+  it('置いた日と終えた日がずれても、重ねない', () => {
+    const m = collectByDate(start, {
+      events: [],
+      due: [],
+      placed: [{ date: '2026-11-25', body: '統計のレポート', itemId: 'a', result: 'done' }],
+      done: [{ date: '2026-11-26', body: '統計のレポート', itemId: 'a' }],
+    })
+    expect(m.get('2026-11-26')).toBeUndefined()
+  })
 })

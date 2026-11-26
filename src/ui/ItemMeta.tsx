@@ -1,5 +1,5 @@
 import type { ClassifyChange, Item } from '../data/items'
-import { AREAS } from '../domain/areas'
+import { usePillars } from './pillars-context'
 import { fromQuadrant, toQuadrant } from '../domain/quadrant'
 
 export type Classify = (item: Item, change: ClassifyChange) => void
@@ -7,6 +7,7 @@ export type Classify = (item: Item, change: ClassifyChange) => void
 // 仕分けの小さな欄(plan/007 段階 C、R4)。領域と、2つの問い(大切なこと / 急ぐこと)。どれも任意(P5)
 // AI の見立て(plan/017、R25 改)は、点線の下線で薄く示し、「見立て」と理由を小さく添える。押すと本人の判断になる
 export default function ItemMeta({ item, onClassify }: { item: Item; onClassify: Classify }) {
+  const pillars = usePillars()
   const answers = fromQuadrant(item.quadrant)
   const toggle = (key: 'important' | 'urgent') => {
     const next = { important: answers?.important ?? false, urgent: answers?.urgent ?? false, [key]: !(answers?.[key] ?? false) }
@@ -20,7 +21,7 @@ export default function ItemMeta({ item, onClassify }: { item: Item; onClassify:
   return (
     <div className="mt-1 mb-2 flex flex-col gap-1 border-l border-rule pl-4 font-hand text-[15px]">
       <div className="flex flex-wrap gap-x-4">
-        {AREAS.map((a) => (
+        {pillars.map((a) => (
           <button
             key={a.id}
             type="button"

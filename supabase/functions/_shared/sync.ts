@@ -1,7 +1,8 @@
 // plan/005 段階 C: Google ToDo との同期で「どちらに何をするか」を決める純粋な関数。
 // 通信やデータベースには触れない。結果の適用は supabase/functions/google-tasks/ が行う。
 
-export type Area = 'work' | 'skill' | 'school' | 'private' | 'business'
+/** 人生の柱の id(plan/022 で、固定の5つから本人が決める柱に改めた) */
+export type Area = string
 
 /** アプリの項目(同期に関係する列だけ) */
 export type LocalItem = {

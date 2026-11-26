@@ -2,7 +2,8 @@ import { useState } from 'react'
 import type { Item } from '../data/items'
 import { shortDate, sortForList } from '../domain/due'
 import { previewList } from '../domain/list-preview'
-import { AREAS } from '../domain/areas'
+import { pillarLabel } from '../domain/pillars'
+import { usePillars } from './pillars-context'
 import ItemMeta, { type Classify } from './ItemMeta'
 import ListMark from './ListMark'
 
@@ -77,9 +78,10 @@ export default function InboxList({ items, canPlace, onPlace, onClassify }: { it
   )
 }
 
-/** 領域を小さく添える。AI の見立てなら点線で薄く(plan/017) */
+/** 人生の柱を小さく添える。AI の見立てなら点線で薄く(plan/017、plan/022) */
 function AreaMark({ item }: { item: Item }) {
-  const label = AREAS.find((a) => a.id === item.area)?.label
+  const label = pillarLabel(usePillars(), item.area)
+  if (!label) return null
   const style = item.areaSource === 'ai' ? 'text-ink-3 underline decoration-dotted underline-offset-4' : 'text-ink-2'
   return <span className={`ml-3 text-[13px] ${style}`}>{label}</span>
 }

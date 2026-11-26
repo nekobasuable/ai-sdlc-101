@@ -1,7 +1,7 @@
 -- plan/003 の証明: 本人の行だけを読み書きできる(spec N6)
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(30);
 
 -- public スキーマに、RLS が無効なテーブルが1つもない
 select is_empty(
@@ -109,6 +109,16 @@ select throws_ok(
 select throws_ok(
   $$ update public.items set ai_reason = repeat('あ', 81) where id = '11111111-1111-1111-1111-111111111111' $$,
   '23514', null, '見立ての理由は80文字まで'
+);
+
+-- 人生の柱(plan/022)。最初の6つが入り、項目には本人の柱の id を付けられる(固定の5つの制約は外した)
+insert into public.settings (time_zone) values ('Asia/Tokyo');
+select is((select jsonb_array_length(pillars) from public.settings), 6, '設定には最初の6つの柱が入る');
+update public.items set area = 'p-abc123' where id = '11111111-1111-1111-1111-111111111111';
+select is((select area from public.items where id = '11111111-1111-1111-1111-111111111111'), 'p-abc123', '項目に本人が足した柱の id を付けられる');
+select throws_ok(
+  $$ update public.items set area = repeat('x', 41) where id = '11111111-1111-1111-1111-111111111111' $$,
+  '23514', null, '柱の id は40文字まで'
 );
 
 select * from finish();

@@ -1,4 +1,3 @@
-import type { Area } from '../domain/areas'
 import type { Quadrant } from '../domain/quadrant'
 import { addDays, type Slot } from '../domain/slot'
 import { weeksBetween } from '../domain/week-grid'
@@ -9,7 +8,8 @@ import { supabase } from './supabase'
 type Tables = Database['public']['Tables']
 export type Source = 'ai' | 'user'
 export type Item = Pick<Tables['items']['Row'], 'id' | 'body' | 'status'> & {
-  area: Area | null
+  /** 人生の柱の id(plan/022) */
+  area: string | null
   quadrant: Quadrant | null
   dueDate: string | null
   /** 領域と象限が、AI の見立てか本人の判断か(plan/017、R25 改) */
@@ -60,7 +60,7 @@ const toItem = (r: ItemRow): Item => ({
   id: r.id,
   body: r.body,
   status: r.status,
-  area: r.area as Area | null,
+  area: r.area,
   quadrant: r.quadrant as Quadrant | null,
   dueDate: r.due_date,
   areaSource: r.area_source as Source | null,
@@ -211,7 +211,7 @@ export async function listCandidates(): Promise<DataResult<Item[]>> {
   return { ok: true, data: data.map(toItem) }
 }
 
-export type ClassifyChange = { area: Area | null } | { quadrant: Quadrant | null }
+export type ClassifyChange = { area: string | null } | { quadrant: Quadrant | null }
 
 /**
  * 仕分け: 本人が領域か象限を書き換える(R4)。触れたほうは本人の判断になる(R25 改、plan/017)。Google ToDo には送らない
@@ -251,5 +251,12 @@ export async function listCompletedWithTimes(start: Date, end: Date): Promise<Da
 export async function reconsider(itemId: string, to: 'inbox' | 'someday'): Promise<DataResult<null>> {
   if (!supabase) return NOT_CONFIGURED
   const { error } = await supabase.from('items').update({ status: to }).eq('id', itemId)
+  return toResult(null, error)
+}
+
+/** 柱を消したとき、その柱が付いていた項目を柱なしに戻す(plan/022)。AI はもう見立てない(見立てを試みた印が残るため) */
+export async function clearPillar(pillarId: string): Promise<DataResult<null>> {
+  if (!supabase) return NOT_CONFIGURED
+  const { error } = await supabase.from('items').update({ area: null, area_source: 'user' }).eq('area', pillarId)
   return toResult(null, error)
 }

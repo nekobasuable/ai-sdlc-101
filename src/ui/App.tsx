@@ -19,6 +19,8 @@ import type { Classify } from './ItemMeta'
 import NowView from './NowView'
 import MonthView from './MonthView'
 import Owl, { type OwlMood } from './Owl'
+import PillarsEditor from './PillarsEditor'
+import { PillarsContext } from './pillars-context'
 import Reveal from './Reveal'
 import Sky from './Sky'
 import { useScroll } from './useScroll'
@@ -175,6 +177,7 @@ function Home() {
   const owl = owlFor(block, entries.length > 0)
 
   return (
+    <PillarsContext.Provider value={settings.pillars}>
     <div className="min-h-screen px-6 pt-7 pb-36 lg:px-18 lg:pt-9 lg:pb-12">
       {/* 日付、ふくろう、タブのバーは、スクロールしても、どのページでも上に残る(spec R36 改、R43、plan/021) */}
       <div
@@ -273,6 +276,7 @@ function Home() {
       )}
 
       <footer className="mx-auto mt-24 flex max-w-6xl flex-col gap-6">
+        <PillarsEditor pillars={settings.pillars} onSaved={(pillars) => setSettings({ ...settings, pillars })} />
         {syncNotice && (
           <p className="m-0 text-sm text-ink-3">
             {syncNotice}
@@ -288,6 +292,7 @@ function Home() {
         </button>
       </footer>
     </div>
+    </PillarsContext.Provider>
   )
 }
 
