@@ -8,7 +8,8 @@ export type OwlMood = 'listen' | 'think' | 'nod' | null
 // 墨の線で描いたふくろう(spec R36)。説明はしない。
 // 動き(spec R43、R36 補、plan/013): 開いたときに舞い降りる。起きているあいだは瞬き、眠っているあいだは寝息。
 // 押すと跳ねて「ほう。」と一言。nudge の値が変わったとき(終えたときなど)も跳ねる
-export default function Owl({ pose, className = '', mood = null, nudge = 0 }: { pose: OwlPose; className?: string; mood?: OwlMood; nudge?: number }) {
+/** small: 上のバーに置くときの、少し小さな姿(plan/021) */
+export default function Owl({ pose, className = '', mood = null, nudge = 0, small = false }: { pose: OwlPose; className?: string; mood?: OwlMood; nudge?: number; small?: boolean }) {
   const label = pose === 'sleep' ? '眠っているふくろう' : pose === 'read' ? '本を読むふくろう' : 'ふくろう'
   // スクロールに合わせて、瞳が少しだけ上下に追う(plan/020)
   const { pupil } = useScroll()
@@ -37,11 +38,11 @@ export default function Owl({ pose, className = '', mood = null, nudge = 0 }: { 
     <Tag
       {...(asleep ? { role: 'img' } : { type: 'button' as const, onClick: poke })}
       aria-label={label}
-      className={`owl-land flex size-14 items-start justify-center text-ink ${className.includes('absolute') ? '' : 'relative'} ${className}`}
+      className={`owl-land flex ${small ? 'size-11 items-center' : 'size-14 items-start'} justify-center text-ink ${className.includes('absolute') ? '' : 'relative'} ${className}`}
     >
       {/* key を変えると、跳ねる動きをもう一度最初から再生できる */}
       <span key={hop} className={`block ${hop > 0 ? 'owl-hop' : ''}`}>
-        <svg className={`block ${moodClass}`} width="46" height="52" viewBox="0 0 46 52" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg className={`block ${moodClass}`} width={small ? 32 : 46} height={small ? 36 : 52} viewBox="0 0 46 52" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <g className={pose === 'sleep' ? 'owl-breathe' : ''}>
             <path d="M10 14c-1.5-4-1-8 1-10 2.5 3 6 4.5 12 4.5S32.5 7 35 4c2 2 2.5 6 1 10" />
             <path d="M9.5 14C6 20 6 34 11 40c3.5 4.2 8 6 12 6s8.5-1.8 12-6c5-6 5-20 1.5-26" />
@@ -80,7 +81,7 @@ export default function Owl({ pose, className = '', mood = null, nudge = 0 }: { 
         </svg>
       </span>
       {hoo && (
-        <span className="hoo pointer-events-none absolute -left-8 top-0 font-hand text-sm whitespace-nowrap text-ink" aria-live="polite">
+        <span className="hoo pointer-events-none absolute top-full left-1/2 -translate-x-1/2 font-hand text-sm whitespace-nowrap text-ink" aria-live="polite">
           ほう。
         </span>
       )}

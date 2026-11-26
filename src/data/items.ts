@@ -1,7 +1,7 @@
 import type { Area } from '../domain/areas'
 import type { Quadrant } from '../domain/quadrant'
 import { addDays, type Slot } from '../domain/slot'
-import { weeksCovering } from '../domain/week-grid'
+import { weeksBetween } from '../domain/week-grid'
 import type { Database } from './database.types'
 import { failure, toResult, type DataResult } from './result'
 import { supabase } from './supabase'
@@ -170,18 +170,21 @@ export async function listWeek(weekStart: string): Promise<DataResult<WeekEntry[
   }
 }
 
-/**
- * start の日から7日に置いた項目(spec R8 改、plan/019)。7日は暦の週を最大2つまたぐので、その週の分をまとめて読み、日付で絞る。
- * 保存の形(暦の週の月曜と曜日)は変えない
- */
+/** start の日から7日に置いた項目(spec R8 改、plan/019) */
 export async function listPlacementsFrom(start: string): Promise<DataResult<WeekEntry[]>> {
+  return listPlacementsBetween(start, addDays(start, 6))
+}
+
+/**
+ * start から end まで(両端を含む)に置いた項目(plan/019、月のカレンダーは plan/021)。
+ * 範囲は暦の週をいくつかまたぐので、その週の分をまとめて読み、日付で絞る。保存の形(暦の週の月曜と曜日)は変えない
+ */
+export async function listPlacementsBetween(start: string, end: string): Promise<DataResult<WeekEntry[]>> {
   if (!supabase) return NOT_CONFIGURED
-  const end = addDays(start, 6)
-  const weeks = weeksCovering(start)
   const { data, error } = await supabase
     .from('placements')
     .select('id, week_start, day, block_id, result, item:items(id, body, status, area, quadrant, due_date, area_source, quadrant_source, ai_reason, deleted_at)')
-    .in('week_start', weeks)
+    .in('week_start', weeksBetween(start, end))
     .order('created_at')
   if (error) return failure(error)
   return {
@@ -226,16 +229,22 @@ export async function classifyItem(itemId: string, change: ClassifyChange): Prom
  * (マイグレーション 20261124040000)ので成り立つ。その条件を変えたら、ここも見直す(PR #7 のレビューの Nit)。
  */
 export async function listCompletedBetween(start: Date, end: Date): Promise<DataResult<Item[]>> {
+  const res = await listCompletedWithTimes(start, end)
+  return res.ok ? { ok: true, data: res.data.map((d) => d.item) } : res
+}
+
+/** その期間に完了になった項目と、完了した時刻(月のカレンダーで、終えた日に置くため。plan/021) */
+export async function listCompletedWithTimes(start: Date, end: Date): Promise<DataResult<{ item: Item; at: Date }[]>> {
   if (!supabase) return NOT_CONFIGURED
   const { data, error } = await supabase
     .from('items')
-    .select(ITEM_COLUMNS)
+    .select(`${ITEM_COLUMNS}, updated_at`)
     .eq('status', 'done')
     .is('deleted_at', null)
     .gte('updated_at', start.toISOString())
     .lt('updated_at', end.toISOString())
   if (error) return failure(error)
-  return { ok: true, data: data.map(toItem) }
+  return { ok: true, data: data.map((r) => ({ item: toItem(r), at: new Date(r.updated_at) })) }
 }
 
 /** 手放したことを選び直す(R17): やることに戻す、または「いつか/やらない」に */

@@ -1,11 +1,11 @@
 import { useSyncExternalStore } from 'react'
-import { headerHidden, pupilShift, skyOffset } from '../domain/scroll'
+import { pupilShift, skyOffset } from '../domain/scroll'
 
 // スクロールへの応え方(spec R43 補、plan/020)。ページ全体で1つだけスクロールを見張り、
 // 描画のたびに1回だけ値を更新する(requestAnimationFrame)。動きを減らす設定では、何も動かさない値を返す
-export type ScrollState = { sky: number; pupil: number; headerHidden: boolean; scrolled: boolean }
+export type ScrollState = { sky: number; pupil: number; scrolled: boolean }
 
-const STILL: ScrollState = { sky: 0, pupil: 0, headerHidden: false, scrolled: false }
+const STILL: ScrollState = { sky: 0, pupil: 0, scrolled: false }
 let state: ScrollState = STILL
 let lastY = 0
 let frame = 0
@@ -15,7 +15,7 @@ const listeners = new Set<() => void>()
 const reduced = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 function set(next: ScrollState) {
-  if (next.sky === state.sky && next.pupil === state.pupil && next.headerHidden === state.headerHidden && next.scrolled === state.scrolled) return
+  if (next.sky === state.sky && next.pupil === state.pupil && next.scrolled === state.scrolled) return
   state = next
   listeners.forEach((l) => l())
 }
@@ -29,7 +29,7 @@ function onScroll() {
     if (reduced()) {
       set({ ...STILL, scrolled: y > 0 })
     } else {
-      set({ sky: skyOffset(y), pupil: pupilShift(velocity), headerHidden: headerHidden(y, lastY, state.headerHidden), scrolled: y > 0 })
+      set({ sky: skyOffset(y), pupil: pupilShift(velocity), scrolled: y > 0 })
       // 止まったら、瞳を元に戻す
       window.clearTimeout(idle)
       idle = window.setTimeout(() => set({ ...state, pupil: 0 }), 160)

@@ -31,3 +31,11 @@ describe('placeEvents', () => {
     expect(placeEvents([{ id: 'e', title: '来週', start: '2026-11-30T10:00:00+09:00', end: '2026-11-30T11:00:00+09:00', allDay: false }], WEEK, TOKYO)).toEqual([])
   })
 })
+
+describe('placeEvents(月のカレンダー、plan/021)', () => {
+  it('days を渡すと、7日より先の予定も置ける', () => {
+    const events = [{ id: 'm', title: '面談', start: '2026-12-15T01:00:00Z', end: '2026-12-15T02:00:00Z', allDay: false }]
+    expect(placeEvents(events, '2026-11-30', 'Asia/Tokyo')).toEqual([])
+    expect(placeEvents(events, '2026-11-30', 'Asia/Tokyo', undefined, 42)[0]).toMatchObject({ day: 15, time: '10:00' })
+  })
+})

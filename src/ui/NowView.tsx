@@ -1,17 +1,13 @@
 import type { NowEntry, PlacementResult } from '../data/items'
 import type { Block } from '../domain/blocks'
-import type { OwlPose } from '../domain/owl'
 import { useState } from 'react'
 import HandCircle from './HandCircle'
 import ItemMeta, { type Classify } from './ItemMeta'
-import Owl from './Owl'
 
 // 今の画面(R13、R14、R14a)。今やることだけを大きく(P7)
 export default function NowView({
   block,
   entries,
-  owl,
-  owlNudge,
   events,
   onResult,
   onUnplace,
@@ -19,9 +15,6 @@ export default function NowView({
 }: {
   block: Block | null
   entries: NowEntry[]
-  owl: OwlPose | null
-  /** この値が変わると、ふくろうが跳ねる(終えたとき) */
-  owlNudge: number
   /** 今のブロックにあるカレンダーの予定(「講義(18:00)」の形) */
   events: string[]
   onResult: (entry: NowEntry, result: PlacementResult) => void | Promise<boolean>
@@ -35,7 +28,6 @@ export default function NowView({
     return (
       <section className="relative">
         <h1 className="m-0 font-mincho text-[30px] leading-relaxed font-normal tracking-wide lg:text-[40px]">静かな時間。</h1>
-        {owl && <Owl pose={owl} nudge={owlNudge} className="absolute -top-14 right-2" />}
       </section>
     )
   }
@@ -43,7 +35,6 @@ export default function NowView({
   return (
     <section className="relative">
       <h1 className="m-0 label font-normal">{block.label}のあいだ</h1>
-      {owl && <Owl pose={owl} nudge={owlNudge} className="absolute -top-8 right-2" />}
       {events.length > 0 && <p className="m-0 mt-2 text-sm text-ink-3">この時間には、{events.join('、')}がある。</p>}
       {entries.length === 0 ? (
         <p className="mt-4 mb-0 font-mincho text-[30px] leading-relaxed font-normal tracking-wide lg:text-[40px]">
@@ -59,9 +50,12 @@ export default function NowView({
                 <HandCircle
                   checked={entry.result === 'done'}
                   label={entry.result === 'done' ? '終えた(押すと途中までに戻す)' : '終えた'}
-                  onClick={() => {
-                    if (entry.result !== 'done') setJustDone(entry.placementId)
-                    return onResult(entry, entry.result === 'done' ? 'partial' : 'done')
+                  onClick={async () => {
+                    const finishing = entry.result !== 'done'
+                    const saved = await onResult(entry, finishing ? 'done' : 'partial')
+                    // 保存できてから「終えた。」を書き込む(PR #18 のレビューの Nit)
+                    if (finishing && saved !== false) setJustDone(entry.placementId)
+                    return saved !== false
                   }}
                 />
                 <h2

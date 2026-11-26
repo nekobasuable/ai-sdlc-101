@@ -5,7 +5,7 @@ import { periodDay, periodOf, type Period } from './period'
 // 出典に自信の持てないもの(出典が誤って広まっている有名な言葉など)は入れない。
 // 夜の時間帯は「夜の束」、それ以外は「一般の束」から選ぶ。
 export type Bundle = 'general' | 'night'
-export type Screen = 'now' | 'week' | 'review'
+export type Screen = 'now' | 'week' | 'month' | 'review'
 export type Quote = { text: string; who: string; source: string; bundle: Bundle }
 
 const g = (text: string, who: string, source: string): Quote => ({ text, who, source, bundle: 'general' })
@@ -163,13 +163,13 @@ function pool(bundle: Bundle): readonly Quote[] {
   return QUOTES.filter((q) => q.bundle === bundle)
 }
 
-const SCREEN_OFFSET: Record<Screen, number> = { now: 0, week: 1, review: 2 }
+const SCREEN_OFFSET: Record<Screen, number> = { now: 0, week: 1, month: 2, review: 3 }
 const DAY_STEP: Record<Exclude<Period, 'night'>, number> = { morning: 0, noon: 1, evening: 2 }
 
 /**
  * 時間帯ごとに1つ選ぶ(spec R18 改)。同じ時間帯のあいだは同じ言葉。
  * それぞれの画面で、束の大きさ ÷ 1日に進む数 の日数(30日以上)は同じ言葉が出ない。
- * 画面ごとに束の 1/3 ずつずらすので、同じ時刻の画面どうしでは重ならない
+ * 画面ごとに束の 1/4 ずつずらすので、同じ時刻の画面どうしでは重ならない
  */
 export function pickQuote(screen: Screen, now: Date, timeZone: string): Quote {
   const period = periodOf(now, timeZone)
@@ -177,7 +177,7 @@ export function pickQuote(screen: Screen, now: Date, timeZone: string): Quote {
   const bundle: Bundle = period === 'night' ? 'night' : 'general'
   const list = pool(bundle)
   const step = bundle === 'night' ? day : day * 3 + DAY_STEP[period as Exclude<Period, 'night'>]
-  const offset = Math.floor(list.length / 3) * SCREEN_OFFSET[screen]
+  const offset = Math.floor(list.length / 4) * SCREEN_OFFSET[screen]
   const index = (((step + offset) % list.length) + list.length) % list.length
   return list[index]
 }
