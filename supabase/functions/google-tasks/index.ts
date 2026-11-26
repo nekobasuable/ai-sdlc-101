@@ -5,7 +5,7 @@
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { googleAccessToken, ReconnectNeeded, signedInUser } from '../_shared/google-auth.ts'
 import { corsHeaders, json } from '../_shared/http.ts'
-import { linksFromLists, planSync, statusFromTask, type LocalItem, type RemoteTask, type StoredLink, type SyncOp } from '../_shared/sync.ts'
+import { linksFromLists, planSync, statusFromTask, toGoogle, type LocalItem, type RemoteTask, type StoredLink, type SyncOp } from '../_shared/sync.ts'
 
 const TASKS_API = 'https://tasks.googleapis.com/tasks/v1'
 
@@ -71,17 +71,7 @@ async function fetchTasks(accessToken: string, listId: string): Promise<RemoteTa
   return tasks
 }
 
-/**
- * Google に送る内容。Google の締め切りは日付だけを UTC の0時で表す。
- * ここで送る列を増やしたら、items の updated_at を進める条件(マイグレーション 20261124040000 の set_items_updated_at)も一緒に直す。
- */
-const toGoogle = (item: LocalItem) => ({
-  title: item.body,
-  // メモは Google ToDo の「詳細」に(plan/022 C)。空にしたら消す
-  notes: item.notes ?? '',
-  due: item.dueDate ? `${item.dueDate}T00:00:00.000Z` : null,
-  status: item.status === 'done' ? 'completed' : 'needsAction',
-})
+// Google に送る内容は _shared/sync.ts の toGoogle(テスト付き)
 
 // synced_at に何か値を書くと、トリガーが updated_at と同じ時刻にそろえる(マイグレーション 20261124010000)
 const SYNC_STAMP = new Date(0).toISOString()

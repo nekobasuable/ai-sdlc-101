@@ -28,7 +28,7 @@ export default function ItemDetail({ item, placed = false }: { item: Item; place
 
   async function keep(save: Promise<{ ok: boolean }>) {
     const res = await save
-    setMessage(res.ok ? null : 'まだ残せていない。つながったら、もう一度ここを離れると残る。')
+    setMessage(res.ok ? null : 'まだ残せていない。つながったら、もう一度書き直して欄を離れると残る。')
     if (res.ok) actions.refresh()
   }
   async function act(run: Promise<boolean>) {

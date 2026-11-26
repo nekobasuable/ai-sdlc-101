@@ -146,3 +146,18 @@ export function linksFromLists(lists: { id: string }[], stored: StoredLink[]): L
     isDefault: l.id === defaultId,
   }))
 }
+
+/**
+ * Google に送る内容。Google の締め切りは日付だけを UTC の0時で表す。
+ * ここで送る列を増やしたら、items の updated_at を進める条件(set_items_updated_at)も一緒に直す。
+ * メモ(plan/022 C): アプリがまだ知らないメモ(null)は送らない。送ると、Google の「詳細」を空で上書きして消してしまう(PR #22 のレビューの指摘)。
+ * 本人がアプリでメモを空にしたときは空文字('')で持ち、Google の詳細も消す。
+ */
+export function toGoogle(item: Pick<LocalItem, 'body' | 'notes' | 'dueDate' | 'status'>) {
+  return {
+    title: item.body,
+    ...(item.notes === null ? {} : { notes: item.notes }),
+    due: item.dueDate ? `${item.dueDate}T00:00:00.000Z` : null,
+    status: item.status === 'done' ? 'completed' : 'needsAction',
+  }
+}

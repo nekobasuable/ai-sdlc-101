@@ -274,7 +274,8 @@ export async function clearPillar(pillarId: string): Promise<DataResult<null>> {
 /** メモを残す(plan/022 C)。次の同期で Google ToDo の「詳細」に届く */
 export async function saveNotes(itemId: string, notes: string): Promise<DataResult<null>> {
   if (!supabase) return NOT_CONFIGURED
-  const { error } = await supabase.from('items').update({ notes: notes.trim() || null }).eq('id', itemId)
+  // 空にしたときは空文字で持つ(null は「まだ知らない」の意味で、Google に送らない。PR #22 のレビューの指摘)
+  const { error } = await supabase.from('items').update({ notes: notes.trim() }).eq('id', itemId)
   return toResult(null, error)
 }
 

@@ -21,3 +21,7 @@ begin
   return new;
 end;
 $$;
+
+-- Google ToDo とつながっている項目は、次の同期で Google の「詳細」を一度取り込む(PR #22 のレビューの指摘)。
+-- 前回見た Google 側の更新時刻を空にすると、同期は Google 側が変わったとみなして取り込む。updated_at は進まない
+update public.items set google_updated_at = null where google_task_id is not null and deleted_at is null;
