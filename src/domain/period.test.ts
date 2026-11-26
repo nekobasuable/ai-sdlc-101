@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { periodDay, periodOf } from './period'
+import { contrastRatio, PALETTE } from './contrast'
+import { PAPER, periodDay, periodOf } from './period'
 
 const TZ = 'Asia/Tokyo'
 // 東京の暦の日時を UTC の瞬間にする(東京は +9 時間、夏時間なし)
@@ -37,5 +38,11 @@ describe('periodDay', () => {
 
   it('同じ日の時間帯は同じ日の番号', () => {
     expect(periodDay(tokyo('2026-11-26', '05:00'), TZ)).toBe(periodDay(tokyo('2026-11-26', '23:59'), TZ))
+  })
+})
+
+describe('PAPER(時間帯ごとの紙の色、R44)', () => {
+  it.each(Object.entries(PAPER))('%s の紙の上で、ink-3 の文字が 4.5:1 以上', (_, paper) => {
+    expect(contrastRatio(PALETTE.ink3, paper)).toBeGreaterThanOrEqual(4.5)
   })
 })

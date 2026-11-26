@@ -11,6 +11,7 @@ export default function NowView({
   block,
   entries,
   owl,
+  owlNudge,
   events,
   onResult,
   onUnplace,
@@ -19,6 +20,8 @@ export default function NowView({
   block: Block | null
   entries: NowEntry[]
   owl: OwlPose | null
+  /** この値が変わると、ふくろうが跳ねる(終えたとき) */
+  owlNudge: number
   /** 今のブロックにあるカレンダーの予定(「講義(18:00)」の形) */
   events: string[]
   onResult: (entry: NowEntry, result: PlacementResult) => void
@@ -26,11 +29,13 @@ export default function NowView({
   onClassify: Classify
 }) {
   const [editing, setEditing] = useState<string | null>(null)
+  // いま終えたものだけ「終えた。」を書き込む動きにする。開き直したときは、書き込み済みとして静かに見せる(PR #17 のレビューの Nit)
+  const [justDone, setJustDone] = useState<string | null>(null)
   if (!block) {
     return (
       <section className="relative">
         <h1 className="m-0 font-mincho text-[30px] leading-relaxed font-normal tracking-wide lg:text-[40px]">静かな時間。</h1>
-        {owl && <Owl pose={owl} className="absolute -top-14 right-2" />}
+        {owl && <Owl pose={owl} nudge={owlNudge} className="absolute -top-14 right-2" />}
       </section>
     )
   }
@@ -38,7 +43,7 @@ export default function NowView({
   return (
     <section className="relative">
       <h1 className="m-0 label font-normal">{block.label}のあいだ</h1>
-      {owl && <Owl pose={owl} className="absolute -top-8 right-2" />}
+      {owl && <Owl pose={owl} nudge={owlNudge} className="absolute -top-8 right-2" />}
       {events.length > 0 && <p className="m-0 mt-2 text-sm text-ink-3">この時間には、{events.join('、')}がある。</p>}
       {entries.length === 0 ? (
         <p className="mt-4 mb-0 font-mincho text-[30px] leading-relaxed font-normal tracking-wide lg:text-[40px]">
@@ -54,7 +59,10 @@ export default function NowView({
                 <HandCircle
                   checked={entry.result === 'done'}
                   label={entry.result === 'done' ? '終えた(押すと途中までに戻す)' : '終えた'}
-                  onClick={() => onResult(entry, entry.result === 'done' ? 'partial' : 'done')}
+                  onClick={() => {
+                    if (entry.result !== 'done') setJustDone(entry.placementId)
+                    onResult(entry, entry.result === 'done' ? 'partial' : 'done')
+                  }}
                 />
                 <h2
                   className={`m-0 font-mincho leading-relaxed font-normal tracking-wide ${large ? 'text-[30px] lg:text-[44px]' : 'text-2xl lg:text-3xl'} ${entry.result === 'done' ? 'text-ink-3' : ''}`}
@@ -69,6 +77,8 @@ export default function NowView({
                   </button>
                 </h2>
               </div>
+              {/* 終えたら、手書きで一言だけ添える。評価の言葉は付けない(plan/013) */}
+              {entry.result === 'done' && <p className={`m-0 ml-12 font-hand text-[17px] text-ink ${justDone === entry.placementId ? 'ink-write' : ''}`}>終えた。</p>}
               {editing === entry.item.id && (
                 <div className="ml-12">
                   <ItemMeta item={entry.item} onClassify={onClassify} />
