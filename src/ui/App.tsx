@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { classifyItem, completeItem, listDue, listInbox, listNow, listWeek, placeNow, setResult, unplace, type Item, type NowEntry, type WeekEntry } from '../data/items'
 import { ensureSettings, type AppSettings } from '../data/settings'
 import { signInWithGoogle, signOut, supabase } from '../data/supabase'
@@ -58,6 +58,18 @@ function Home() {
   const [tab, setTab] = useState<'now' | 'week' | 'review'>('now')
   // 放り込んだ文字が「週」に着いた回数(着くたびに点を灯し直す)
   const [landed, setLanded] = useState(0)
+  // 今のブロックで、まだ終えていなかったものを終えた回数。ふくろうはこの値が増えたときだけ跳ねる(plan/013)。
+  // 開いたときの読み込みや、ブロックの切り替えで終えた数が変わっても跳ねないよう、同じ配置の結果の変化だけを数える(PR #17 のレビューの指摘)
+  const [owlNudge, setOwlNudge] = useState(0)
+  const lastResults = useRef<Map<string, string | null>>(new Map())
+  useEffect(() => {
+    const finished = entries.some((e) => {
+      const before = lastResults.current.get(e.placementId)
+      return before !== undefined && before !== 'done' && e.result === 'done'
+    })
+    lastResults.current = new Map(entries.map((e) => [e.placementId, e.result]))
+    if (finished) setOwlNudge((n) => n + 1)
+  }, [entries])
   // 項目の変更や、ブロックの切り替わり(slotKey の変化)のたびに読み直す
   const [version, setVersion] = useState(0)
 
@@ -145,8 +157,6 @@ function Home() {
   const allDay = todayEvents.filter((e) => e.time === null).map((e) => e.title)
   const rest = restOfDay(settings.blocks, block?.id ?? null, bodies)
   const owl = owlFor(block, entries.length > 0, date)
-  // 終えた数が増えたら、ふくろうが跳ねる(plan/013)
-  const doneCount = entries.filter((e) => e.result === 'done').length
 
   return (
     <div className="min-h-screen px-6 pt-7 pb-36 lg:px-18 lg:pt-9 lg:pb-12">
@@ -187,7 +197,7 @@ function Home() {
               block={block}
               entries={entries}
               owl={owl.spot === 'heading' ? owl.pose : null}
-              owlNudge={doneCount}
+              owlNudge={owlNudge}
               events={nowEvents}
               onResult={(entry, result) => run(setResult(entry, result))}
               onUnplace={(entry) => run(unplace(entry))}
@@ -197,7 +207,7 @@ function Home() {
             {message && <p className="m-0 text-sm text-ink-3">{message}</p>}
             <div className="relative hidden lg:block">
               <QuoteLine screen="now" now={now} timeZone={tz} />
-              {owl.spot === 'corner' && <Owl pose={owl.pose} nudge={doneCount} className="absolute -top-16 right-0" />}
+              {owl.spot === 'corner' && <Owl pose={owl.pose} nudge={owlNudge} className="absolute -top-16 right-0" />}
             </div>
           </main>
 
@@ -214,7 +224,7 @@ function Home() {
                 {rest.planned.length === 0 && rest.free.length === 0 && <span className="text-ink-3">今日は、これでおしまい。</span>}
                 {allDay.length > 0 && <span className="text-ink-3">今日は一日、{allDay.join('、')}。</span>}
               </div>
-              {owl.spot === 'aside' && <Owl pose={owl.pose} nudge={doneCount} className="absolute -top-14 right-0" />}
+              {owl.spot === 'aside' && <Owl pose={owl.pose} nudge={owlNudge} className="absolute -top-14 right-0" />}
             </section>
 
             <DailyNote date={date} />
@@ -223,7 +233,7 @@ function Home() {
 
             <div className="relative lg:hidden">
               <QuoteLine screen="now" now={now} timeZone={tz} />
-              {owl.spot === 'corner' && <Owl pose={owl.pose} nudge={doneCount} className="absolute -top-16 right-0" />}
+              {owl.spot === 'corner' && <Owl pose={owl.pose} nudge={owlNudge} className="absolute -top-16 right-0" />}
             </div>
 
             {captureBar('lg:static lg:px-0 lg:pb-0')}
