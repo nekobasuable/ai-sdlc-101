@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { saveNotes, type Item } from '../data/items'
+import { saveDueDate, saveNotes, type Item } from '../data/items'
 import { consultText, consultUrl } from '../domain/consult'
-import { shortDate } from '../domain/due'
 import { pillarLabel } from '../domain/pillars'
 import { QUADRANT_NAMES, type Quadrant } from '../domain/quadrant'
+import { fitHeight } from './auto-height'
+import DueField from './DueField'
 import { useItemActions } from './item-actions'
 import ItemMeta from './ItemMeta'
 import { usePillars } from './pillars-context'
@@ -69,7 +70,8 @@ export default function ItemDetail({ item, placed = false }: { item: Item; place
   return (
     <div className="mt-1 mb-3 ml-1 flex flex-col gap-3 border-l border-rule pl-4">
       <p className="m-0 flex flex-wrap items-baseline gap-x-3 text-[13px] text-ink-3">
-        {item.dueDate && <span>〆 {shortDate(item.dueDate)}</span>}
+        {/* 締め切りは、ここで付ける・直す・外す(spec R7 補、plan/025) */}
+        <DueField id={`due-${item.id}`} value={item.dueDate} onChange={(due) => due !== item.dueDate && void keep(saveDueDate(item.id, due))} />
         <span className={guessed ? 'underline decoration-dotted underline-offset-4' : 'text-ink-2'}>
           {summary || 'まだ分けていない'}
           {guessed && '(見立て)'}
@@ -121,10 +123,3 @@ export default function ItemDetail({ item, placed = false }: { item: Item; place
   )
 }
 
-/** メモの欄の高さを中身に合わせる。上限は CSS の max-h(画面の高さの半分)で、超えたら中で送る */
-function fitHeight(el: HTMLTextAreaElement | null): void {
-  if (!el) return
-  el.style.height = 'auto'
-  // 下線(border)の分も足す。足さないと、1px 足りずに中で送る印が出る
-  el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`
-}

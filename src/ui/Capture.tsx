@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import { addItem } from '../data/items'
+import { captureFields } from '../domain/capture'
 import { flightDuration, planFlight, type CharFlight } from '../domain/flight'
-import { joinSpoken } from '../domain/speech-text'
-import MicButton from './MicButton'
-import { useSpeech } from './useSpeech'
+import { fitHeight } from './auto-height'
+import DueField from './DueField'
 
-// 放り込む(R1、R3)。下線だけの入力欄(スキル)。音声は、マイクのボタンか OS の音声入力で(R2、spec の変更 6)
+// タスクの追加(R1、R3、R51)。下線だけの入力欄(スキル)。
+// パッと入れるための欄なので、マイクは置かない(声は OS の音声入力で。R2、plan/025)。
+// 題名を書き始めると、締め切り(〆)とメモを任意で足せる(R51、plan/025)
 // 送った文字は一文字ずつ「週」(data-fly-target)へ飛び、着いたら onLanded を呼ぶ(plan/013)。保存に失敗したら飛ばさない
 export default function Capture({
   onAdded,
@@ -25,28 +27,28 @@ export default function Capture({
   const timers = useRef<number[]>([])
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), [])
   const [saving, setSaving] = useState(false)
-  // 聞き取りを始めたときの欄の文字。聞き取った文字はこの後ろに足す
-  const [base, setBase] = useState('')
-  const speech = useSpeech((heard) => setBody(joinSpoken(base, heard, '')))
-  const toggleMic = () => {
-    if (speech.listening) return speech.stop()
-    setBase(body)
-    speech.start()
-  }
+  const [due, setDue] = useState<string | null>(null)
+  const [notes, setNotes] = useState('')
+  const [notesOpen, setNotesOpen] = useState(false)
+  const notesRef = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => fitHeight(notesRef.current), [notes, notesOpen])
+  // 何も書いていないときは一行のまま(P2)。締め切りかメモを入れていれば、題名を消しても残す
+  const showExtras = body.trim() !== '' || due !== null || notesOpen || notes.trim() !== ''
 
   async function submit(e: FormEvent) {
     e.preventDefault()
-    // 聞き取りの途中に送っても、送った文字が戻ってこないよう、先に止める(PR #9 のレビューの指摘)
-    if (speech.listening) speech.stop()
-    const text = body.trim()
-    if (!text || saving) return
+    const fields = captureFields({ body, dueDate: due ?? '', notes })
+    if (!fields || saving) return
     setSaving(true)
-    const res = await addItem(text)
+    const res = await addItem(fields)
     setSaving(false)
     if (!res.ok) return onError(res.message)
     setBody('')
+    setDue(null)
+    setNotes('')
+    setNotesOpen(false)
     onAdded()
-    fly(text)
+    fly(fields.body)
   }
 
   function fly(text: string) {
@@ -94,34 +96,51 @@ export default function Capture({
         やることに入った。
       </p>
     )}
-    {speech.error && (
-      <p className="m-0 pt-1 text-[13px] text-ink-3" role="status">
-        {speech.error}
-      </p>
-    )}
-    <form onSubmit={submit} className={`flex items-center gap-2 border-b border-rule ${className}`}>
+    <form onSubmit={submit} className={className}>
+      <div className="flex items-center gap-2 border-b border-rule">
       <label htmlFor="capture" className="sr-only">
-        ふと浮かんだこと
+        タスクの追加
       </label>
       <input
         ref={inputRef}
         id="capture"
         value={body}
-        onChange={(e) => {
-          // 手で直したら聞き取りを止め、直した文字を残す
-          if (speech.listening) speech.stop()
-          setBody(e.target.value)
-        }}
-        placeholder="ふと浮かんだことを"
+        onChange={(e) => setBody(e.target.value)}
+        placeholder="タスクの追加"
         enterKeyHint="send"
         className="min-h-11 min-w-0 flex-1 bg-transparent py-3 font-hand text-base text-ink outline-none placeholder:text-ink-3"
       />
-      {speech.supported && <MicButton listening={speech.listening} onToggle={toggleMic} />}
       <button type="submit" disabled={saving} aria-label="入れる" className="flex size-11 items-center justify-center text-ink-3 disabled:opacity-40">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" aria-hidden="true">
           <path d="M5 12h14M13 6l6 6-6 6" />
         </svg>
       </button>
+      </div>
+      {showExtras && (
+        <div className="fade-up flex flex-col">
+          <div className="flex flex-wrap items-center gap-x-5">
+            <DueField id="capture-due" value={due} onChange={setDue} />
+            <button type="button" aria-expanded={notesOpen} onClick={() => setNotesOpen(!notesOpen)} className="min-h-11 font-hand text-sm text-ink-3">
+              メモ
+            </button>
+          </div>
+          {notesOpen && (
+            <>
+              <label htmlFor="capture-notes" className="sr-only">
+                メモ
+              </label>
+              <textarea
+                ref={notesRef}
+                id="capture-notes"
+                rows={2}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="max-h-[50vh] w-full min-w-0 resize-none overflow-y-auto border-b border-rule bg-transparent py-1 font-hand text-base leading-relaxed text-ink outline-none"
+              />
+            </>
+          )}
+        </div>
+      )}
     </form>
     </>
   )

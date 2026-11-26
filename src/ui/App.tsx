@@ -14,6 +14,7 @@ import { currentSlot, weekStartOf, type Slot } from '../domain/slot'
 import { zonedParts } from '../domain/time'
 import { weekRange } from '../domain/week'
 import Capture from './Capture'
+import { dailyNoteSlot } from '../domain/daily-note'
 import InboxList from './InboxList'
 import type { Classify } from './ItemMeta'
 import NowView from './NowView'
@@ -151,9 +152,10 @@ function Home() {
 
   if (!settings) return <p className="p-6 text-ink-3">{message ?? '開いています…'}</p>
 
-  // 放り込む欄は、どのタブにも置く(spec R1。PR #3 のレビューの指摘)。スマホは画面の下に固定、PC は流れの中に置く
+  // タスクの追加は、どのタブにも置く(spec R1。PR #3 のレビューの指摘)。
+  // 「今」では、やることの一覧のすぐ上に流れの中で置く(plan/025)。ほかのタブは、スマホは画面の下に固定、PC は流れの中
   const captureBar = (desktop: string) => (
-    <div className={`fixed inset-x-0 bottom-0 bg-paper px-6 pb-[max(1rem,env(safe-area-inset-bottom))] ${desktop}`}>
+    <div className={desktop === 'inline' ? '' : `fixed inset-x-0 bottom-0 bg-paper px-6 pb-[max(1rem,env(safe-area-inset-bottom))] ${desktop}`}>
       <Capture
         onAdded={() => {
           reload()
@@ -176,6 +178,7 @@ function Home() {
   const allDay = todayEvents.filter((e) => e.time === null).map((e) => e.title)
   const rest = restOfDay(settings.blocks, block?.id ?? null, bodies)
   const owl = owlFor(block, entries.length > 0)
+  const noteSlot = dailyNoteSlot(now, tz)
 
   return (
     <PillarsContext.Provider value={settings.pillars}>
@@ -268,19 +271,23 @@ function Home() {
               </div>
             </section>
 
-            <Reveal>
-              <DailyNote date={date} />
-            </Reveal>
+            {/* 一言は、夕方から次の朝までだけ(spec R17a 補、plan/025) */}
+            {noteSlot && (
+              <Reveal>
+                <DailyNote slot={noteSlot} />
+              </Reveal>
+            )}
 
-            <Reveal>
+            <div className="flex flex-col gap-6">
+              {captureBar('inline')}
+              <Reveal>
               <InboxList items={inbox} canPlace={slot !== null} onPlace={(item) => slot && run(placeNow(item.id, slot))} />
-            </Reveal>
+              </Reveal>
+            </div>
 
             <Reveal className="relative lg:hidden">
               <QuoteLine screen="now" now={now} timeZone={tz} />
             </Reveal>
-
-            {captureBar('lg:static lg:px-0 lg:pb-0')}
           </aside>
         </div>
       )}
