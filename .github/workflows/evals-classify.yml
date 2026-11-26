@@ -1,0 +1,38 @@
+# AI の見立ての評価(plan/017、プレイブック Stage 4、spec N7)。話して省みるの評価(evals.yml)とは分け、変えたほうだけを回す。
+# AI への指示や窓口、評価用の例を変えた PR でだけ動く(無料枠の回数の上限にかからないように)
+name: Evals (classify)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - supabase/functions/_shared/classify.ts
+      - supabase/functions/_shared/ai.ts
+      - evals/classify/**
+      - evals/run-classify.ts
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 新しいプッシュが来たら、古い評価は止める(2本同時に Gemini を呼んで回数の上限にかからないように。PR #9)
+concurrency:
+  group: evals-classify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  classify:
+    name: classify evals
+    runs-on: ubuntu-latest
+    # 呼び直しと間隔があるので長めに。それでも詰まったら打ち切る(PR #8 のレビューの Nit)
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --experimental-strip-types evals/run-classify.ts
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          GEMINI_FALLBACK_MODEL: ${{ vars.GEMINI_FALLBACK_MODEL }}

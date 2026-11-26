@@ -1,7 +1,7 @@
 -- plan/003 の証明: 本人の行だけを読み書きできる(spec N6)
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(24);
+select plan(27);
 
 -- public スキーマに、RLS が無効なテーブルが1つもない
 select is_empty(
@@ -95,6 +95,21 @@ update public.items set status = 'candidate' where id = '11111111-1111-1111-1111
 select ok((select updated_at = (select ts from before_ts) from public.items where id = '11111111-1111-1111-1111-111111111111'), '完了以外の状態の変化(今やるに置く)では updated_at が進まない');
 update public.items set body = '統計のレポート(改)' where id = '11111111-1111-1111-1111-111111111111';
 select ok((select updated_at > (select ts from before_ts) from public.items where id = '11111111-1111-1111-1111-111111111111'), '題名の変更では updated_at が進む');
+
+-- AI の見立て(plan/017)。見立ての列を書いても updated_at は進まない(Google ToDo に送る変更ではないため)
+alter table public.items disable trigger set_updated_at;
+update public.items set updated_at = '2000-01-01' where id = '11111111-1111-1111-1111-111111111111';
+alter table public.items enable trigger set_updated_at;
+update public.items set area_source = 'ai', quadrant_source = 'ai', ai_reason = '大学院の課題', ai_tried_at = now() where id = '11111111-1111-1111-1111-111111111111';
+select ok((select updated_at = '2000-01-01'::timestamptz from public.items where id = '11111111-1111-1111-1111-111111111111'), 'AI の見立ての列では updated_at が進まない');
+select throws_ok(
+  $$ update public.items set area_source = 'robot' where id = '11111111-1111-1111-1111-111111111111' $$,
+  '23514', null, '見立てか本人か、のほかの値は入らない'
+);
+select throws_ok(
+  $$ update public.items set ai_reason = repeat('あ', 81) where id = '11111111-1111-1111-1111-111111111111' $$,
+  '23514', null, '見立ての理由は80文字まで'
+);
 
 select * from finish();
 rollback;

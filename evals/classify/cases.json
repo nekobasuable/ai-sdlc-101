@@ -1,0 +1,20 @@
+{
+  "today": "2026-11-26",
+  "cases": [
+    { "id": "school-report-soon", "body": "組織行動論レポート", "dueDate": "2026-11-28", "area": "school" },
+    { "id": "school-exam-far", "body": "経営戦略 試験", "dueDate": "2027-01-26", "area": "school" },
+    { "id": "school-admin", "body": "教育訓練給付金の初回(半年後)支給申請手続き", "dueDate": "2027-04-01", "area": "school" },
+    { "id": "school-overdue", "body": "統計の小テストの復習", "dueDate": "2026-11-24", "area": "school" },
+    { "id": "work-meeting", "body": "来週の部会の資料を作る", "dueDate": "2026-11-27", "area": "work" },
+    { "id": "work-mail", "body": "取引先に見積もりの返信", "dueDate": null, "area": "work" },
+    { "id": "work-review", "body": "後輩の企画書にコメントする", "dueDate": "2026-12-15", "area": "work" },
+    { "id": "private-shopping", "body": "牛乳と卵を買う", "dueDate": null, "area": "private" },
+    { "id": "private-exercise", "body": "週末にジムで30分走る", "dueDate": null, "area": "private" },
+    { "id": "private-family", "body": "母の誕生日プレゼントを選ぶ", "dueDate": "2026-12-20", "area": "private" },
+    { "id": "private-hobby", "body": "写真展の予約", "dueDate": "2026-11-26", "area": "private" },
+    { "id": "skill-english", "body": "英語のシャドーイング15分", "dueDate": null, "area": "skill" },
+    { "id": "skill-cert", "body": "中小企業診断士の過去問を1年分解く", "dueDate": null, "area": "skill" },
+    { "id": "business-idea", "body": "新規事業のアイデアを3つ書き出す", "dueDate": null, "area": "business" },
+    { "id": "business-interview", "body": "起業準備で、見込み客に話を聞く日程を決める", "dueDate": "2026-12-10", "area": "business" }
+  ]
+}

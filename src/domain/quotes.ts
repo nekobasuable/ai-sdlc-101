@@ -1,4 +1,4 @@
-import { periodDay, periodOf } from './period'
+import { periodDay, periodOf, type Period } from './period'
 
 // 哲学者や思想家の言葉(spec R18、R19、C3、変更 7)。
 // 古典(著作権の切れたもの)から、日本語訳の言い回しをそのまま使わず、意味を保った言い換えにして、人物と著作を添える。
@@ -120,7 +120,7 @@ export const QUOTES: readonly Quote[] = [
   g('三人で歩けば、そこに必ず私の師がいる。', CONFUCIUS, '論語 述而'),
   g('ものを見るのに、ひとつの見方にとらわれない。', ZHUANGZI, '荘子 斉物論篇'),
   g('急いで行こうとすると、たどり着けない。', CONFUCIUS, '論語 子路'),
-  g('菜の花や 月は東に 日は西に', '与謝蕪村', '句'),
+  g('菜の花や 月は東に 日は西に', '与謝蕪村', '蕪村句集'),
 
   // --- 夜の束 ---
   n('ミネルヴァのふくろうは、夕暮れが訪れてはじめて飛び立つ。', 'ヘーゲル', '法の哲学 序文'),
@@ -136,7 +136,6 @@ export const QUOTES: readonly Quote[] = [
   n('人は、自分の心の内に退くことができる。そこほど静かな場所はない。', AURELIUS, '自省録 4.3'),
   n('人生は、後ろ向きにしか理解できないが、前向きにしか生きられない。', 'キルケゴール', '日記 1843年'),
   n('何かを失ったとは言わず、返したと言う。', EPICTETUS, '要録 11'),
-  n('焚くほどの落ち葉は、風が運んできてくれる。', '良寛', '句'),
   n('川の流れは絶えないが、流れる水は、もとの水ではない。', '鴨長明', '方丈記'),
   n('過ぎゆくものは、この川の流れのよう。昼も夜も止まらない。', CONFUCIUS, '論語 子罕'),
   n('花は満開のときだけ、月は曇りのないときだけ見るものだろうか。', KENKO, '徒然草 137段'),
@@ -155,8 +154,8 @@ export const QUOTES: readonly Quote[] = [
   n('急がない。何ものも、急いで成るものはない。', EPICTETUS, '語録 1巻15章'),
   n('季節が移り変わっていくことこそ、何ごとにも味わいがある。', KENKO, '徒然草 19段'),
   n('一日一日を、それで人生が閉じてもよいように整えておく。', SENECA, '倫理書簡集 12'),
-  n('この道や 行く人なしに 秋の暮', BASHO, '句'),
-  n('月天心 貧しき町を 通りけり', '与謝蕪村', '句'),
+  n('この道や 行く人なしに 秋の暮', BASHO, '句 元禄7年(1694年)'),
+  n('月天心 貧しき町を 通りけり', '与謝蕪村', '蕪村句集'),
 ]
 
 /** その束での並び */
@@ -165,7 +164,7 @@ function pool(bundle: Bundle): readonly Quote[] {
 }
 
 const SCREEN_OFFSET: Record<Screen, number> = { now: 0, week: 1, review: 2 }
-const DAY_STEP: Record<string, number> = { morning: 0, noon: 1, evening: 2 }
+const DAY_STEP: Record<Exclude<Period, 'night'>, number> = { morning: 0, noon: 1, evening: 2 }
 
 /**
  * 時間帯ごとに1つ選ぶ(spec R18 改)。同じ時間帯のあいだは同じ言葉。
@@ -177,7 +176,7 @@ export function pickQuote(screen: Screen, now: Date, timeZone: string): Quote {
   const day = periodDay(now, timeZone)
   const bundle: Bundle = period === 'night' ? 'night' : 'general'
   const list = pool(bundle)
-  const step = bundle === 'night' ? day : day * 3 + DAY_STEP[period]
+  const step = bundle === 'night' ? day : day * 3 + DAY_STEP[period as Exclude<Period, 'night'>]
   const offset = Math.floor(list.length / 3) * SCREEN_OFFSET[screen]
   const index = (((step + offset) % list.length) + list.length) % list.length
   return list[index]
