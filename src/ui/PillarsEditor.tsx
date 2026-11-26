@@ -15,16 +15,18 @@ export default function PillarsEditor({ pillars, onSaved }: { pillars: readonly 
   async function save(next: Pillar[], removed?: string) {
     // 空の名前や重なった名前は、保存せずに知らせる(黙って除くと、その柱の表示が消えるため)
     const issue = pillarIssue(next)
-    if (issue) return setMessage(issue)
+    // 名前を直すまで、ほかの変更(並べ替えや消すこと)も残らないので、そのことも添える(PR #21 のレビューの Nit)
+    if (issue) return setMessage(`${issue}名前を直すと、ほかの変更も残る。`)
     const res = await savePillars(next)
     if (!res.ok) return setMessage('まだ残せていない。つながったら、もう一度。')
-    if (removed) {
-      const cleared = await clearPillar(removed)
-      if (!cleared.ok) return setMessage('柱は消したが、やることから外しきれなかった。もう一度消すと外れる。')
-    }
-    setMessage(null)
+    // 柱の一覧は保存できたので、外しきれなかったときも画面の一覧は新しくする(PR #21 のレビューの Nit)
     setDraft(res.data)
     onSaved(res.data)
+    if (removed) {
+      const cleared = await clearPillar(removed)
+      if (!cleared.ok) return setMessage('柱は消したが、やることから外しきれなかった。少しおいて開き直すと、柱なしで表示される。')
+    }
+    setMessage(null)
   }
 
   const rename = (i: number, label: string) => setDraft(draft.map((p, j) => (j === i ? { ...p, label } : p)))

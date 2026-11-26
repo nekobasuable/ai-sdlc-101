@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { linksFromLists, planSync, statusFromTask, type ListLink, type LocalItem, type RemoteTask } from './sync.ts'
+import { linksFromLists, planSync, statusFromTask, toGoogle, type ListLink, type LocalItem, type RemoteTask } from './sync.ts'
 
 const T0 = '2026-11-20T00:00:00.000Z' // 前回の同期
 const T1 = '2026-11-21T00:00:00.000Z'
@@ -12,6 +12,7 @@ const task = (over: Partial<RemoteTask> = {}): RemoteTask => ({
   id: 't1',
   listId: 'univ',
   title: '統計のレポート',
+  notes: null,
   due: '2026-11-27',
   completed: false,
   deleted: false,
@@ -23,6 +24,7 @@ const task = (over: Partial<RemoteTask> = {}): RemoteTask => ({
 const synced = (over: Partial<LocalItem> = {}): LocalItem => ({
   id: 'i1',
   body: '統計のレポート',
+  notes: null,
   area: 'school',
   dueDate: '2026-11-27',
   status: 'inbox',
@@ -151,5 +153,43 @@ describe('linksFromLists', () => {
 
   it('リストが1つもなければ、対象もない', () => {
     expect(linksFromLists([], [])).toEqual([])
+  })
+})
+
+describe('メモ(Google ToDo の「詳細」、plan/022 C)', () => {
+  it('Google でメモだけが変わったら、アプリに取り込む', () => {
+    const ops = planSync([synced()], [task({ notes: '第3章まで', updated: T1 })], [UNIV])
+    expect(ops).toHaveLength(1)
+    expect(ops[0]).toMatchObject({ kind: 'updateLocal', task: { notes: '第3章まで' } })
+  })
+
+  it('アプリでメモだけを変えたら(updated_at が進む)、Google に送る', () => {
+    const ops = planSync([synced({ notes: '参考文献を足す', updatedAt: T1 })], [task()], [UNIV])
+    expect(ops).toHaveLength(1)
+    expect(ops[0]).toMatchObject({ kind: 'updateRemote', item: { notes: '参考文献を足す' } })
+  })
+
+  it('両方でメモを変えたら、あとから変えたほうを正とする', () => {
+    const ops = planSync([synced({ notes: 'アプリ', updatedAt: T2 })], [task({ notes: 'Google', updated: T1 })], [UNIV])
+    expect(ops[0]).toMatchObject({ kind: 'updateRemote' })
+  })
+})
+
+describe('toGoogle と、メモを消さないこと(PR #22 のレビューの指摘)', () => {
+  const base = { body: '統計のレポート', dueDate: '2026-11-27', status: 'inbox' as const }
+
+  it('アプリがまだ知らないメモ(null)は送らない。Google の「詳細」を消さないため', () => {
+    expect(toGoogle({ ...base, notes: null })).not.toHaveProperty('notes')
+  })
+
+  it('本人が書いたメモは送り、空にしたメモ(空文字)は空で送って消す', () => {
+    expect(toGoogle({ ...base, notes: '第3章まで' })).toMatchObject({ notes: '第3章まで' })
+    expect(toGoogle({ ...base, notes: '' })).toMatchObject({ notes: '' })
+  })
+
+  it('メモの列を足した直後(google_updated_at を空に戻した項目)は、次の同期で Google のメモを取り込む', () => {
+    const ops = planSync([synced({ googleUpdatedAt: null })], [task({ notes: '前から書いていた詳細' })], [UNIV])
+    expect(ops).toHaveLength(1)
+    expect(ops[0]).toMatchObject({ kind: 'updateLocal', task: { notes: '前から書いていた詳細' } })
   })
 })
