@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { addItem } from '../data/items'
 import { draftReflection, type Reflection } from '../data/reflect'
 import { joinSpoken } from '../domain/speech-text'
 import MicButton from './MicButton'
+import type { OwlMood } from './Owl'
 import { useSpeech } from './useSpeech'
 
 // サーバー側の関数の上限と同じ(supabase/functions/_shared/reflect.ts の MAX_INPUT)
 const MAX_INPUT = 4000
 
 // 話して省みる(plan/011、spec R40、R41)。AI は下書きまで。何を残すかは本人が選ぶ(C9)
-export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Promise<boolean> }) {
+// ふくろうの様子を呼ぶ側に知らせる(plan/013): 聞いている間、整えている間、下書きが出たとき
+export default function SpeakReflect({ onKeep, onMood }: { onKeep: (text: string) => Promise<boolean>; onMood?: (mood: OwlMood) => void }) {
   const [spoken, setSpoken] = useState('')
   const [base, setBase] = useState('')
   const speech = useSpeech((heard) => setSpoken(joinSpoken(base, heard, '\n').slice(0, MAX_INPUT)))
@@ -22,6 +24,14 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
   const [picked, setPicked] = useState<Set<number>>(new Set())
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [nodding, setNodding] = useState(false)
+  const mood: OwlMood = speech.listening ? 'listen' : busy ? 'think' : nodding ? 'nod' : null
+  useEffect(() => onMood?.(mood), [mood]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!nodding) return
+    const t = window.setTimeout(() => setNodding(false), 2500)
+    return () => window.clearTimeout(t)
+  }, [nodding])
   // 「残す」の途中で失敗したとき、押し直しで成功した分をやり直さないよう、済んだものを覚えておく(PR #8 のレビューの指摘)
   const [memoKept, setMemoKept] = useState(false)
   const [added, setAdded] = useState<Set<string>>(new Set())
@@ -40,6 +50,7 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
     if (!res.ok) return setMessage(res.message)
     setMessage(null)
     setDraft(res.data)
+    setNodding(true)
     setPicked(new Set())
     resetProgress()
   }
@@ -88,7 +99,7 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
         }}
         placeholder="思ったことを、そのまま"
         maxLength={MAX_INPUT}
-        className="w-full resize-none border-b border-rule bg-transparent py-2 font-hand text-base leading-loose text-ink outline-none placeholder:text-ink-3"
+        className={`w-full resize-none border-b border-rule bg-transparent py-2 font-hand text-base leading-loose text-ink transition-opacity duration-1000 outline-none placeholder:text-ink-3 ${busy ? 'opacity-40' : ''}`}
       />
       {spoken.length > MAX_INPUT - 300 && <p className="m-0 mt-1 text-[13px] text-ink-3">あと {MAX_INPUT - spoken.length} 文字まで。</p>}
       {speech.error && <p className="m-0 mt-1 text-[13px] text-ink-3">{speech.error}</p>}
@@ -104,8 +115,10 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
       )}
 
       {draft && (
-        <div className="mt-6 flex flex-col gap-6 border-l border-rule pl-4">
-          <div>
+        <div className="relative mt-6 flex flex-col gap-6 pl-4">
+          {/* 左の括弧の線を上から引いてから、4つの項目を順に書き込む(plan/013) */}
+          <span aria-hidden="true" className="draw-down absolute top-0 bottom-0 left-0 w-px bg-rule" />
+          <div className="ink-write" style={{ animationDelay: '0.4s' }}>
             <label htmlFor="draft-words" className="mb-1 block label">
               この週の言葉
             </label>
@@ -118,7 +131,7 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
             />
           </div>
           {draft.insights.length > 0 && (
-            <div>
+            <div className="ink-write" style={{ animationDelay: '1.0s' }}>
               <p className="m-0 mb-1 label">気づいたこと</p>
               {draft.insights.map((t, i) => (
                 <input
@@ -132,7 +145,7 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
             </div>
           )}
           {draft.carry.length > 0 && (
-            <div>
+            <div className="ink-write" style={{ animationDelay: '1.6s' }}>
               <p className="m-0 mb-1 label">来週に持っていきたいこと</p>
               {draft.carry.map((t, i) => (
                 <label key={i} className="flex min-h-11 items-center gap-3 text-[15px] text-ink-2">
@@ -148,7 +161,7 @@ export default function SpeakReflect({ onKeep }: { onKeep: (text: string) => Pro
             </div>
           )}
           {draft.letGo.length > 0 && (
-            <div>
+            <div className="ink-write" style={{ animationDelay: '2.2s' }}>
               <p className="m-0 mb-1 label">手放してよさそうなこと</p>
               <p className="m-0 text-[15px] leading-relaxed text-ink-2">{draft.letGo.join('、')}。</p>
             </div>

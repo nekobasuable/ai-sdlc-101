@@ -6,7 +6,7 @@ import { aboutHours, letGo, timeSpent } from '../domain/review'
 import { addDays, weekStartOf } from '../domain/slot'
 import { zonedMidnight } from '../domain/time'
 import { weekGrid } from '../domain/week-grid'
-import Owl from './Owl'
+import Owl, { type OwlMood } from './Owl'
 import QuoteLine from './QuoteLine'
 import SpeakReflect from './SpeakReflect'
 
@@ -17,6 +17,8 @@ type Loaded = { weekStart: string; entries: WeekEntry[]; notes: Map<string, stri
 export default function ReviewView({ settings, now }: { settings: AppSettings; now: Date }) {
   const [offset, setOffset] = useState(0) // 0 = 今週、-1 = 先週
   const [loaded, setLoaded] = useState<Loaded | null>(null)
+  // 話して省みるに合わせた、ふくろうの様子(plan/013)
+  const [owlMood, setOwlMood] = useState<OwlMood>(null)
   const [memoDraft, setMemoDraft] = useState<string | null>(null)
   const [memoUnsaved, setMemoUnsaved] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
@@ -69,7 +71,7 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
 
   return (
     <section className="relative flex flex-col gap-12">
-      <Owl pose="read" className="absolute -top-2 right-0" />
+      <Owl pose={owlMood ? 'watch' : 'read'} mood={owlMood} className="absolute -top-2 right-0" />
       <header>
         <h1 className="m-0 font-mincho text-[26px] font-normal tracking-[0.06em]">省みる</h1>
         <div className="mt-2 flex gap-5 font-hand text-[15px]">
@@ -163,7 +165,7 @@ export default function ReviewView({ settings, now }: { settings: AppSettings; n
             </section>
           )}
 
-          <SpeakReflect key={weekStart} onKeep={appendToMemo} />
+          <SpeakReflect key={weekStart} onKeep={appendToMemo} onMood={setOwlMood} />
 
           <section>
             <label htmlFor="weekly-memo" className="mb-2 block label">

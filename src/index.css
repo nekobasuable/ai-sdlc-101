@@ -46,3 +46,287 @@ body {
   font-family: var(--font-sans);
   font-weight: 400;
 }
+
+/*
+ * 動き(spec R43、plan/013)。操作したときと、時間の移り変わりにだけ動く。
+ * 速さは --motion を掛けて決める。強すぎると感じたら、ここの値を小さくすれば全体が一段静かになる。
+ * 動き続けるのは、ふくろうの瞬きと寝息、夜の星のまたたきだけ。
+ */
+:root {
+  --motion: 1;
+}
+
+body {
+  transition: background-color 2.5s ease;
+}
+
+@keyframes ink-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ink-in {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+    letter-spacing: 0.12em;
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@keyframes ink-write {
+  from {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0.4;
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ink-drop {
+  0% {
+    transform: translate(0, 0) scale(1.4);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(var(--x), var(--y)) scale(0.4);
+    opacity: 0;
+  }
+}
+@keyframes fly-char {
+  0% {
+    transform: translate(0, 0) rotate(0);
+    opacity: 1;
+  }
+  25% {
+    transform: translate(0, -14px) rotate(var(--r));
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) rotate(calc(var(--r) * 4)) scale(0.4);
+    opacity: 0;
+  }
+}
+@keyframes pulse-dot {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.8);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes owl-blink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  95.5% {
+    transform: scaleY(0.1);
+  }
+}
+@keyframes owl-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+@keyframes owl-hop {
+  0% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-14px) rotate(-8deg);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes owl-land {
+  from {
+    transform: translate(40px, -60px) rotate(-12deg) scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes owl-listen {
+  0%,
+  100% {
+    transform: rotate(-12deg);
+  }
+  50% {
+    transform: rotate(-5deg) translateY(-2px);
+  }
+}
+@keyframes owl-look {
+  0%,
+  100% {
+    transform: translateX(-1.6px);
+  }
+  50% {
+    transform: translateX(1.6px);
+  }
+}
+@keyframes owl-nod {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  40% {
+    transform: rotate(8deg) translateY(2px);
+  }
+}
+@keyframes hoo {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  20%,
+  70% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes ripple {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+@keyframes draw-down {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@utility ink-draw {
+  stroke-dasharray: var(--len, 80);
+  stroke-dashoffset: var(--len, 80);
+  animation: ink-draw calc(1.2s * var(--motion)) cubic-bezier(0.4, 0.1, 0.3, 1) forwards;
+}
+@utility ink-in {
+  animation: ink-in calc(1s * var(--motion)) ease-out both;
+}
+@utility ink-write {
+  animation: ink-write calc(1.4s * var(--motion)) cubic-bezier(0.5, 0.1, 0.4, 1) both;
+}
+@utility fade-up {
+  animation: fade-up calc(1.4s * var(--motion)) ease both;
+}
+@utility ink-drop {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 9999px;
+  background: var(--color-ink);
+  pointer-events: none;
+  animation: ink-drop calc(0.9s * var(--motion)) cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+@utility fly-char {
+  display: inline-block;
+  animation: fly-char calc(1.5s * var(--motion)) cubic-bezier(0.5, -0.3, 0.6, 1) forwards;
+}
+@utility pulse-dot {
+  animation: pulse-dot 1s ease;
+}
+@utility owl-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: owl-blink 6s infinite;
+}
+@utility owl-breathe {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: owl-breathe 4s ease-in-out infinite;
+}
+@utility owl-hop {
+  animation: owl-hop calc(0.7s * var(--motion)) cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@utility owl-land {
+  animation: owl-land calc(1.6s * var(--motion)) cubic-bezier(0.45, 0.05, 0.3, 1) both;
+}
+@utility owl-listen {
+  transform-origin: 50% 90%;
+  animation: owl-listen 2.2s ease-in-out infinite;
+}
+@utility owl-look {
+  animation: owl-look 1.4s ease-in-out infinite;
+}
+@utility owl-nod {
+  transform-origin: 50% 90%;
+  animation: owl-nod 1s ease 2;
+}
+@utility hoo {
+  animation: hoo 1.8s ease both;
+}
+@utility ripple {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border: 1px solid var(--color-ink);
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: ripple calc(2.4s * var(--motion)) cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+}
+@utility draw-down {
+  transform-origin: top;
+  animation: draw-down calc(1.2s * var(--motion)) cubic-bezier(0.4, 0.1, 0.3, 1) both;
+}
+@utility twinkle {
+  animation: twinkle 3.2s ease-in-out infinite;
+}
+
+/* 端末で動きを減らす設定にしていたら、動かさない(R43) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

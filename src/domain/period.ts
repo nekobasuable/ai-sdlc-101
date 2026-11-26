@@ -21,3 +21,11 @@ export function periodDay(now: Date, timeZone: string): number {
   const dayNumber = Math.floor(Date.UTC(year, month - 1, day) / 86_400_000)
   return hour < 5 ? dayNumber - 1 : dayNumber
 }
+
+/** 時間帯ごとの紙の色(spec R44、plan/013)。朝は明るく、夜は灯りの色に。どの時間帯でも薄墨の文字が読める明るさにとどめる */
+export const PAPER: Record<Period, string> = {
+  morning: '#f6f2ea',
+  noon: '#f3efe7',
+  evening: '#f1eadf',
+  night: '#efe8dc',
+}
