@@ -20,6 +20,11 @@
 
 ## やらないこと
 - Google ToDo の繰り返しタスクを毎回分見せること。Google ToDo の API は、繰り返しタスクを「今の1回」だけ返し、次の回はそれを終えたときに作られる。カレンダーに毎週並んで見えるのは、カレンダー側が先の回を描いているだけで、API からは取れない(繰り返しの規則も返ってこない)。アプリ側で先の回を作ると、Google 側と食い違って二重になる。
+  - 出典(2026-11-26 に確かめた。plan/024 で追記):
+    - Google の Tasks API のリファレンス(Task の項目): https://developers.google.com/workspace/tasks/reference/rest/v1/tasks 。繰り返しを表す項目がない(カレンダーの予定にある `recurrence` に当たるものがない)。`tasks.list` にも先の回を広げる指定はない。
+    - Stack Overflow「Is it possible to get all the history of reccuring google tasks with google tasks API?」の回答: https://stackoverflow.com/questions/73434762 。API は繰り返しかどうかを判別できず、1つの回しか返さない。
+    - Google への要望: https://issuetracker.google.com/issues/273870211
+    - プロダクトオーナーは「このままにする」を選んだ。
 
 ## 証明(Proof)
 - `npm run lint`、`npm test`、`npm run build` が通る。CI と AI レビュー(Important 0 件)を通る。

@@ -17,14 +17,13 @@ export type Item = Pick<Tables['items']['Row'], 'id' | 'body' | 'status'> & {
   quadrantSource: Source | null
   /** AI の見立ての理由(R26 改) */
   aiReason: string | null
-  /** メモ(Google ToDo の「詳細」と同期)と、最初の一歩(plan/022 C) */
+  /** メモ(Google ToDo の「詳細」と同期、plan/022 C)。最初の一歩は plan/024 でなくした(列は残す) */
   notes: string | null
-  firstStep: string | null
 }
 export type PlacementResult = NonNullable<Tables['placements']['Row']['result']>
 export type NowEntry = { placementId: string; result: PlacementResult | null; item: Item }
 
-const ITEM_COLUMNS = 'id, body, status, area, quadrant, due_date, area_source, quadrant_source, ai_reason, notes, first_step'
+const ITEM_COLUMNS = 'id, body, status, area, quadrant, due_date, area_source, quadrant_source, ai_reason, notes'
 
 const NOT_CONFIGURED = { ok: false, message: 'Supabase の設定がまだありません。' } as const
 
@@ -58,7 +57,6 @@ type ItemRow = {
   quadrant_source: string | null
   ai_reason: string | null
   notes: string | null
-  first_step: string | null
 }
 // 領域と象限はデータベースの制約で値が限られているので、決まった値の型として受け取る
 const toItem = (r: ItemRow): Item => ({
@@ -72,7 +70,6 @@ const toItem = (r: ItemRow): Item => ({
   quadrantSource: r.quadrant_source as Source | null,
   aiReason: r.ai_reason,
   notes: r.notes,
-  firstStep: r.first_step,
 })
 
 /** 締め切りのある未完了の項目(spec R38、R39)。to まで(含む)、from があればそこから(含む) */
@@ -103,7 +100,7 @@ export async function listNow(slot: Slot): Promise<DataResult<NowEntry[]>> {
   if (!supabase) return NOT_CONFIGURED
   const { data, error } = await supabase
     .from('placements')
-    .select('id, result, item:items(id, body, status, area, quadrant, due_date, area_source, quadrant_source, ai_reason, notes, first_step, deleted_at)')
+    .select('id, result, item:items(id, body, status, area, quadrant, due_date, area_source, quadrant_source, ai_reason, notes, deleted_at)')
     .eq('week_start', slot.weekStart)
     .eq('day', slot.day)
     .eq('block_id', slot.blockId)
@@ -163,7 +160,7 @@ export async function listWeek(weekStart: string): Promise<DataResult<WeekEntry[
   if (!supabase) return NOT_CONFIGURED
   const { data, error } = await supabase
     .from('placements')
-    .select('id, day, block_id, result, item:items(id, body, status, area, quadrant, due_date, area_source, quadrant_source, ai_reason, notes, first_step, deleted_at)')
+    .select('id, day, block_id, result, item:items(id, body, status, area, quadrant, due_date, area_source, quadrant_source, ai_reason, notes, deleted_at)')
     .eq('week_start', weekStart)
     .order('created_at')
   if (error) return failure(error)
@@ -190,7 +187,7 @@ export async function listPlacementsBetween(start: string, end: string): Promise
   if (!supabase) return NOT_CONFIGURED
   const { data, error } = await supabase
     .from('placements')
-    .select('id, week_start, day, block_id, result, item:items(id, body, status, area, quadrant, due_date, area_source, quadrant_source, ai_reason, notes, first_step, deleted_at)')
+    .select('id, week_start, day, block_id, result, item:items(id, body, status, area, quadrant, due_date, area_source, quadrant_source, ai_reason, notes, deleted_at)')
     .in('week_start', weeksBetween(start, end))
     .order('created_at')
   if (error) return failure(error)
@@ -276,12 +273,5 @@ export async function saveNotes(itemId: string, notes: string): Promise<DataResu
   if (!supabase) return NOT_CONFIGURED
   // 空にしたときは空文字で持つ(null は「まだ知らない」の意味で、Google に送らない。PR #22 のレビューの指摘)
   const { error } = await supabase.from('items').update({ notes: notes.trim() }).eq('id', itemId)
-  return toResult(null, error)
-}
-
-/** 最初の一歩を残す(plan/022 C)。アプリの中だけで使い、Google ToDo には送らない */
-export async function saveFirstStep(itemId: string, firstStep: string): Promise<DataResult<null>> {
-  if (!supabase) return NOT_CONFIGURED
-  const { error } = await supabase.from('items').update({ first_step: firstStep.trim().slice(0, 80) || null }).eq('id', itemId)
   return toResult(null, error)
 }
