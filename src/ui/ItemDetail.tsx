@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { saveFirstStep, saveNotes, type Item } from '../data/items'
 import { consultText, consultUrl } from '../domain/consult'
 import { shortDate } from '../domain/due'
@@ -21,6 +21,30 @@ export default function ItemDetail({ item, placed = false }: { item: Item; place
   const [step, setStep] = useState(item.firstStep ?? '')
   const [fixing, setFixing] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const notesRef = useRef<HTMLTextAreaElement>(null)
+  const stepRef = useRef<HTMLInputElement>(null)
+
+  // 開いたまま同期で中身が変わったら、新しい値にする。書いている最中は本人の入力を優先する(PR #22 のレビューの Nit、plan/023)
+  useEffect(() => {
+    if (document.activeElement !== notesRef.current) setNotes(item.notes ?? '')
+  }, [item.notes])
+  useEffect(() => {
+    if (document.activeElement !== stepRef.current) setStep(item.firstStep ?? '')
+  }, [item.firstStep])
+
+  // メモの欄は、書いた分だけ縦に広がる。上限(画面の高さの半分)を超えたら、その中で送る(spec R49 補足、plan/023)
+  useLayoutEffect(() => {
+    const fit = () => {
+      const el = notesRef.current
+      if (!el) return
+      el.style.height = 'auto'
+      // 下線(border)の分も足す。足さないと、1px 足りずに中で送る印が出る
+      el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`
+    }
+    fit()
+    // 手書きの字(Web フォント)が後から届くと折り返しが変わるので、届いたらもう一度合わせる
+    void document.fonts?.ready.then(fit)
+  }, [notes])
   const pillar = pillarLabel(pillars, item.area)
   const quadrant = item.quadrant ? QUADRANT_NAMES[item.quadrant as Quadrant] : null
   const guessed = item.areaSource === 'ai' || item.quadrantSource === 'ai'
@@ -57,12 +81,13 @@ export default function ItemDetail({ item, placed = false }: { item: Item; place
           メモ
         </label>
         <textarea
+          ref={notesRef}
           id={`notes-${item.id}`}
           rows={2}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           onBlur={() => notes !== (item.notes ?? '') && void keep(saveNotes(item.id, notes))}
-          className="w-full min-w-0 resize-none border-b border-rule bg-transparent py-1 font-hand text-base leading-relaxed text-ink outline-none"
+          className="max-h-[50vh] w-full min-w-0 resize-none overflow-y-auto border-b border-rule bg-transparent py-1 font-hand text-base leading-relaxed text-ink outline-none"
         />
       </div>
       <div className="flex items-baseline gap-2 border-b border-rule">
@@ -70,6 +95,7 @@ export default function ItemDetail({ item, placed = false }: { item: Item; place
           まず、
         </label>
         <input
+          ref={stepRef}
           id={`step-${item.id}`}
           value={step}
           maxLength={80}
