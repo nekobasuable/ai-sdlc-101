@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { classifyItem, completeItem, listDue, listInbox, listNow, listWeek, placeNow, setResult, unplace, type Item, type NowEntry, type WeekEntry } from '../data/items'
 import { ensureSettings, type AppSettings } from '../data/settings'
-import { signOut, supabase } from '../data/supabase'
+import { signInWithGoogle, signOut, supabase } from '../data/supabase'
+import { RECONNECT } from '../data/sync'
 import { fetchEvents } from '../data/calendar'
 import { currentBlock } from '../domain/blocks'
 import { placeEvents, type PlacedEvent } from '../domain/calendar-blocks'
@@ -207,7 +208,16 @@ function Home() {
       )}
 
       <footer className="mx-auto mt-24 flex max-w-6xl flex-col gap-6">
-        {syncNotice && <p className="m-0 text-sm text-ink-3">{syncNotice}</p>}
+        {syncNotice && (
+          <p className="m-0 text-sm text-ink-3">
+            {syncNotice}
+            {syncNotice === RECONNECT && (
+              <button type="button" onClick={() => void signInWithGoogle({ consent: true })} className="ml-3 min-h-11 font-hand text-[15px] text-ink underline decoration-rule underline-offset-[6px]">
+                つなぎ直す
+              </button>
+            )}
+          </p>
+        )}
         <button type="button" onClick={signOut} className="min-h-11 self-start text-sm text-ink-3">
           ログアウト
         </button>
