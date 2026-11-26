@@ -254,9 +254,12 @@ export async function reconsider(itemId: string, to: 'inbox' | 'someday'): Promi
   return toResult(null, error)
 }
 
-/** 柱を消したとき、その柱が付いていた項目を柱なしに戻す(plan/022)。AI はもう見立てない(見立てを試みた印が残るため) */
+/** 柱を消したとき、その柱が付いていた項目とリストの結びつきを、柱なしに戻す(plan/022)。AI はもう見立てない(見立てを試みた印が残るため) */
 export async function clearPillar(pillarId: string): Promise<DataResult<null>> {
   if (!supabase) return NOT_CONFIGURED
   const { error } = await supabase.from('items').update({ area: null, area_source: 'user' }).eq('area', pillarId)
-  return toResult(null, error)
+  if (error) return failure(error)
+  // Google ToDo のリストとの結びつきからも外す(同期で入る項目に、消した柱が付かないように。PR #20 のレビューの Nit)
+  const links = await supabase.from('task_list_links').update({ area: null }).eq('area', pillarId)
+  return toResult(null, links.error)
 }

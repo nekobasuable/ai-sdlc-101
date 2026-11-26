@@ -46,3 +46,15 @@ export function parsePillars(raw: unknown): Pillar[] {
   const normalized = normalizePillars(list)
   return normalized.length > 0 ? normalized : [...DEFAULT_PILLARS]
 }
+
+/**
+ * 保存する前に、知らせたほうがよいことがあれば一言で返す(PR #20 のレビューの Nit)。
+ * 空の名前や重なった名前は、黙って除くと、その柱が付いた項目の表示が消えるため、保存せずに知らせる
+ */
+export function pillarIssue(pillars: readonly Pillar[]): string | null {
+  const labels = pillars.map((p) => p.label.trim())
+  if (labels.some((l) => l === '')) return '名前のない柱がある。'
+  const dup = labels.find((l, i) => labels.indexOf(l) !== i)
+  if (dup) return `「${dup}」が二つある。どちらかの名前を変えると残せる。`
+  return null
+}

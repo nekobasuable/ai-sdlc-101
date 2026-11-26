@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { clearPillar } from '../data/items'
 import { savePillars } from '../data/settings'
-import { MAX_LABEL, MAX_PILLARS, newPillarId, type Pillar } from '../domain/pillars'
+import { MAX_LABEL, MAX_PILLARS, newPillarId, pillarIssue, type Pillar } from '../domain/pillars'
 import ListMark from './ListMark'
 
 // 人生の柱を直す(spec R4 改、plan/022)。名前を直す、足す、消す、並べ替える。
@@ -13,9 +13,15 @@ export default function PillarsEditor({ pillars, onSaved }: { pillars: readonly 
   const [message, setMessage] = useState<string | null>(null)
 
   async function save(next: Pillar[], removed?: string) {
+    // 空の名前や重なった名前は、保存せずに知らせる(黙って除くと、その柱の表示が消えるため)
+    const issue = pillarIssue(next)
+    if (issue) return setMessage(issue)
     const res = await savePillars(next)
     if (!res.ok) return setMessage('まだ残せていない。つながったら、もう一度。')
-    if (removed) await clearPillar(removed)
+    if (removed) {
+      const cleared = await clearPillar(removed)
+      if (!cleared.ok) return setMessage('柱は消したが、やることから外しきれなかった。もう一度消すと外れる。')
+    }
     setMessage(null)
     setDraft(res.data)
     onSaved(res.data)
