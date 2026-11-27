@@ -173,6 +173,26 @@ describe('メモ(Google ToDo の「詳細」、plan/022 C)', () => {
     const ops = planSync([synced({ notes: 'アプリ', updatedAt: T2 })], [task({ notes: 'Google', updated: T1 })], [UNIV])
     expect(ops[0]).toMatchObject({ kind: 'updateRemote' })
   })
+
+  // PR #22 の Nit、plan/027: メモを取り込むようにした直後(google_updated_at を空に戻した)、アプリで直したばかりの項目
+  it('アプリがまだメモを知らず、アプリ側が新しくて Google に送るときも、Google のメモを取り込む', () => {
+    const ops = planSync([synced({ notes: null, googleUpdatedAt: null, updatedAt: T2 })], [task({ notes: '第3章まで', updated: T1 })], [UNIV])
+    expect(ops).toHaveLength(1)
+    expect(ops[0]).toMatchObject({ kind: 'updateRemote', adoptNotes: '第3章まで' })
+  })
+
+  it('アプリにメモがあれば(空にしたときも)、Google のメモは取り込まない', () => {
+    for (const notes of ['アプリのメモ', '']) {
+      const ops = planSync([synced({ notes, updatedAt: T2 })], [task({ notes: 'Google', updated: T1 })], [UNIV])
+      expect(ops[0]).toMatchObject({ kind: 'updateRemote' })
+      expect(ops[0]).not.toHaveProperty('adoptNotes')
+    }
+  })
+
+  it('Google にもメモがなければ、取り込むものはない', () => {
+    const ops = planSync([synced({ notes: null, updatedAt: T2 })], [task({ updated: T1 })], [UNIV])
+    expect(ops[0]).not.toHaveProperty('adoptNotes')
+  })
 })
 
 describe('toGoogle と、メモを消さないこと(PR #22 のレビューの指摘)', () => {

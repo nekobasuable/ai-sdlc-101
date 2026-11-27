@@ -41,7 +41,11 @@ export type SyncOp =
   | { kind: 'updateLocal'; item: LocalItem; task: RemoteTask }
   | { kind: 'deleteLocal'; item: LocalItem }
   | { kind: 'createRemote'; item: LocalItem; listId: string }
-  | { kind: 'updateRemote'; item: LocalItem; taskId: string; listId: string }
+  /**
+   * adoptNotes: アプリがまだ知らないメモ(null)のとき、Google の「詳細」をアプリに取り込む(PR #22 の Nit、plan/027)。
+   * アプリ側が新しくて Google へ送る側になっても、メモを取りこぼさないため
+   */
+  | { kind: 'updateRemote'; item: LocalItem; taskId: string; listId: string; adoptNotes?: string }
   | { kind: 'deleteRemote'; item: LocalItem; taskId: string; listId: string }
 
 const time = (iso: string) => Date.parse(iso)
@@ -111,7 +115,13 @@ export function planSync(items: LocalItem[], tasks: RemoteTask[], links: ListLin
     ops.push(
       remoteWins
         ? { kind: 'updateLocal', item, task }
-        : { kind: 'updateRemote', item, taskId: task.id, listId: task.listId },
+        : {
+            kind: 'updateRemote',
+            item,
+            taskId: task.id,
+            listId: task.listId,
+            ...(item.notes === null && task.notes ? { adoptNotes: task.notes } : {}),
+          },
     )
   }
 

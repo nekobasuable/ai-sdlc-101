@@ -63,7 +63,7 @@ describe('collectByDate', () => {
   })
 
   it('締め切りは日付に置き、日付のないものは置かない', () => {
-    expect(map.get('2026-11-28')?.due).toEqual(['組織行動論レポート'])
+    expect(map.get('2026-11-28')?.due.map((d) => d.body)).toEqual(['組織行動論レポート'])
   })
 
   it('置いた予定で終えたものは、終えたことに重ねない', () => {

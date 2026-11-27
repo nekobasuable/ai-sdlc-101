@@ -3,8 +3,12 @@
 
 const VERSION = 'v1'
 
-function fromBase64(b64: string): Uint8Array {
-  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
+// Web Crypto に渡すため、ArrayBuffer に載った Uint8Array を返す(Deno の型チェックが ArrayBufferLike を受け付けないため。plan/027)
+function fromBase64(b64: string): Uint8Array<ArrayBuffer> {
+  const text = atob(b64)
+  const bytes = new Uint8Array(new ArrayBuffer(text.length))
+  for (let i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i)
+  return bytes
 }
 
 function toBase64(bytes: Uint8Array): string {

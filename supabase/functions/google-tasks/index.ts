@@ -215,7 +215,9 @@ async function apply(admin: SupabaseClient, userId: string, accessToken: string,
         method: 'PATCH',
         body: JSON.stringify(toGoogle(op.item)),
       })
-      return check(await recordAfterRemote(admin, op.item, { google_updated_at: updated.updated }))
+      // アプリがまだ知らないメモは、Google のものを取り込む(plan/027)。そのあいだに本人が項目を変えていたら書かない
+      const adopt = op.adoptNotes === undefined ? {} : { notes: op.adoptNotes }
+      return check(await recordAfterRemote(admin, op.item, { google_updated_at: updated.updated }, adopt))
     }
     case 'deleteRemote':
       await google(accessToken, `/lists/${encodeURIComponent(op.listId)}/tasks/${encodeURIComponent(op.taskId)}`, { method: 'DELETE' })
@@ -228,10 +230,11 @@ async function apply(admin: SupabaseClient, userId: string, accessToken: string,
  * 読んだあとに利用者が項目を変えていなければ、Google 側の情報とあわせて「同期済み」にする。
  * 変えていたら、Google 側の情報だけを記録し、「同期済み」にはしない。その変更は次の同期で Google に送り直される。
  */
-async function recordAfterRemote(admin: SupabaseClient, item: LocalItem, fields: Record<string, string>) {
+async function recordAfterRemote(admin: SupabaseClient, item: LocalItem, fields: Record<string, string>, onlyIfUnchanged: Record<string, string> = {}) {
+  // onlyIfUnchanged: 本人が項目を変えていないときだけ書く値(本人の入力を上書きしないため。plan/027)
   const synced = await admin
     .from('items')
-    .update({ ...fields, synced_at: SYNC_STAMP })
+    .update({ ...fields, ...onlyIfUnchanged, synced_at: SYNC_STAMP })
     .eq('id', item.id)
     .eq('updated_at', item.updatedAt)
     .select('id')
