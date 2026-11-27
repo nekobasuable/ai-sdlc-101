@@ -250,6 +250,12 @@ function Home() {
             <Reveal>
               <TodayDue {...dueByToday(due, date)} onComplete={(item) => run(completeItem(item.id))} />
             </Reveal>
+            {/* 一言は、夕方から次の朝までだけ(spec R17a 補、plan/025)。右の列を静かにするため、左の列に置く(plan/026) */}
+            {noteSlot && (
+              <Reveal>
+                <DailyNote slot={noteSlot} />
+              </Reveal>
+            )}
             {message && <p className="m-0 text-sm text-ink-3">{message}</p>}
             <Reveal className="relative hidden lg:block">
               <QuoteLine screen="now" now={now} timeZone={tz} />
@@ -270,13 +276,6 @@ function Home() {
                 {allDay.length > 0 && <span className="text-ink-3">今日は一日、{allDay.join('、')}。</span>}
               </div>
             </section>
-
-            {/* 一言は、夕方から次の朝までだけ(spec R17a 補、plan/025) */}
-            {noteSlot && (
-              <Reveal>
-                <DailyNote slot={noteSlot} />
-              </Reveal>
-            )}
 
             <div className="flex flex-col gap-6">
               {captureBar('inline')}

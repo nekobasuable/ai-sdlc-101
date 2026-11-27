@@ -128,8 +128,8 @@ function Row({
   onPlace: (item: Item) => void
 }) {
   return (
-    <li className="border-b border-rule-soft last:border-b-0">
-      {/* 箇条書き: 頭に小さな墨の印、行のあいだに薄い罫線(spec R47、plan/020) */}
+    <li>
+      {/* 箇条書き: 頭に小さな墨の点。行のあいだに罫線は引かず、余白で区切る(spec R47 補、plan/026) */}
       <div className="flex items-start gap-3 text-base leading-relaxed text-ink">
         <ListMark />
         <button type="button" aria-expanded={editing} onClick={onEdit} className="min-h-11 flex-1 py-2 text-left">
