@@ -22,7 +22,7 @@ export default function TodayDue({
       <h2 className="m-0 mb-2 label font-normal">今日までのこと</h2>
       <ul className="m-0 flex list-none flex-col p-0">
         {[...overdue, ...today].map((item) => (
-          <li key={item.id} className="border-b border-rule-soft last:border-b-0">
+          <li key={item.id}>
             <div className="flex items-center gap-2">
               <HandCircle checked={false} label={`${item.body}を終えた`} onClick={() => onComplete(item)} />
               <button

@@ -188,7 +188,7 @@ function DayList({ title, items, faint = false }: { title: string; items: string
       <p className="m-0 mb-1 text-[13px] text-ink-3">{title}</p>
       <ul className="m-0 flex list-none flex-col p-0">
         {items.map((t, i) => (
-          <li key={i} className={`flex items-start gap-3 border-b border-rule-soft py-2 text-base leading-relaxed last:border-b-0 ${faint ? 'text-ink-2' : 'text-ink'}`}>
+          <li key={i} className={`flex items-start gap-3 py-2 text-base leading-relaxed ${faint ? 'text-ink-2' : 'text-ink'}`}>
             <ListMark />
             <span>{t}</span>
           </li>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toDueDate } from '../domain/capture'
 import { shortDate } from '../domain/due'
 
@@ -13,6 +13,18 @@ export default function DueField({ id, value, onChange, className = '' }: { id: 
   const [draft, setDraft] = useState<string | null>(null)
   const open = draft !== null
   const link = 'min-h-11 font-hand text-sm text-ink-3'
+  const box = useRef<HTMLSpanElement>(null)
+
+  // 何も選ばないうちに欄の外を押したら閉じる(PR #25 のレビューの Nit)。
+  // 離れただけでは閉じない(OS の日付の選び方が開くと先に欄から離れる端末があるが、そのあいだはページが押されない)
+  useEffect(() => {
+    if (draft !== '') return
+    const onDown = (e: PointerEvent) => {
+      if (!box.current?.contains(e.target as Node)) setDraft(null)
+    }
+    document.addEventListener('pointerdown', onDown)
+    return () => document.removeEventListener('pointerdown', onDown)
+  }, [draft])
 
   function close(text = draft) {
     if (text === null) return
@@ -23,7 +35,7 @@ export default function DueField({ id, value, onChange, className = '' }: { id: 
   }
 
   return (
-    <span className={`inline-flex flex-wrap items-center gap-x-3 ${className}`}>
+    <span ref={box} className={`inline-flex flex-wrap items-center gap-x-3 ${className}`}>
       {open ? (
         <>
           <label htmlFor={id} className="font-hand text-sm text-ink-3">
@@ -41,8 +53,9 @@ export default function DueField({ id, value, onChange, className = '' }: { id: 
               if (document.activeElement !== e.target && toDueDate(e.target.value)) return close(e.target.value)
               setDraft(e.target.value)
             }}
-            // まだ何も選んでいないうちに離れても、閉じない(日付の選び方を開いたときに先に離れる端末があるため)。Esc で閉じる
-            onBlur={() => draft !== '' && close()}
+            // まだ何も選んでいないうちは、離れただけでは閉じない(上の pointerdown で閉じる)。
+            // ほかの欄へ移ったとき(relatedTarget がある)は閉じる。Esc でも閉じる
+            onBlur={(e) => (draft !== '' || e.relatedTarget) && close()}
             onKeyDown={(e) => {
               // Enter で閉じる。追加の欄では、フォームを送らない(締め切りを選んだだけで追加されないように)
               if (e.key === 'Enter') {
