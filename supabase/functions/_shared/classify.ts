@@ -74,7 +74,6 @@ export function buildClassifyRequest(items: readonly ClassifyInput[], today: str
   return { system: classifyInstruction(pillars), user: `今日: ${today}\nやること:\n${JSON.stringify(list)}`, schema: classifySchema(pillars) }
 }
 
-
 /** AI の返事を確かめて、key(1始まりの連番)ごとの見立てにする。形の違う項目は捨てる */
 export function parseClassification(raw: unknown, count: number, pillarIds: readonly string[]): Map<number, Suggestion> {
   const ids = new Set(pillarIds)

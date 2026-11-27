@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { fetchEvents } from '../data/calendar'
-import { listCompletedWithTimes, listDue, listPlacementsBetween } from '../data/items'
+import { listCompletedWithTimes, listDue, listPlacementsBetween, type Item } from '../data/items'
 import type { AppSettings } from '../data/settings'
 import { placeEvents } from '../domain/calendar-blocks'
 import { collectByDate, monthGrid, shiftMonth, type DayContent } from '../domain/month-grid'
 import { addDays } from '../domain/slot'
 import { zonedMidnight, zonedParts } from '../domain/time'
 import { todayOf } from '../domain/week-grid'
+import ItemDetail from './ItemDetail'
 import ListMark from './ListMark'
 import QuoteLine from './QuoteLine'
 import Reveal from './Reveal'
@@ -24,7 +25,7 @@ export default function MonthView({ settings, now, version }: { settings: AppSet
   const [shown, setShown] = useState({ year: p.year, month: p.month })
   const [picked, setPicked] = useState<string | null>(today)
   // どの月の中身かを一緒に持ち、切り替えた直後に前の月の中身を重ねない
-  const [loaded, setLoaded] = useState<{ key: string; days: Map<string, DayContent>; failed: boolean } | null>(null)
+  const [loaded, setLoaded] = useState<{ key: string; days: Map<string, DayContent<Item>>; failed: boolean } | null>(null)
 
   const grid = monthGrid(shown.year, shown.month, today)
   const start = grid[0][0].date
@@ -113,7 +114,7 @@ export default function MonthView({ settings, now, version }: { settings: AppSet
             <div key={week[0].date} className="grid grid-cols-7 border-b border-rule-soft">
               {week.map((d) => {
                 const c = days.get(d.date)
-                const lines = c ? [...c.events.map((e) => (e.time ? `${e.time} ${e.title}` : e.title)), ...c.due.map((b) => `〆 ${b}`), ...c.placed.filter((x) => !x.done).map((x) => x.body)] : []
+                const lines = c ? [...c.events.map((e) => (e.time ? `${e.time} ${e.title}` : e.title)), ...c.due.map((d) => `〆 ${d.body}`), ...c.placed.filter((x) => !x.done).map((x) => x.body)] : []
                 // 終えたこと(置いた予定で終えたものも含む)は、行にせず数だけ薄く
                 const doneCount = c ? c.done.length + c.placed.filter((x) => x.done).length : 0
                 const count = lines.length + doneCount
@@ -166,7 +167,7 @@ export default function MonthView({ settings, now, version }: { settings: AppSet
           ) : (
             <>
               <DayList title="予定" items={pickedContent.events.map((e) => (e.time ? `${e.time}　${e.title}` : `一日、${e.title}`))} />
-              <DayList title="〆" items={pickedContent.due} />
+              <DueList items={pickedContent.due} />
               <DayList title="置いた予定" items={pickedContent.placed.map((x) => (x.done ? `${x.body}(終えた)` : x.body))} />
               <DayList title="終えたこと" items={pickedContent.done} faint />
             </>
@@ -191,6 +192,30 @@ function DayList({ title, items, faint = false }: { title: string; items: string
           <li key={i} className={`flex items-start gap-3 py-2 text-base leading-relaxed ${faint ? 'text-ink-2' : 'text-ink'}`}>
             <ListMark />
             <span>{t}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** 締め切りの一覧。行を押すと、やることの一覧と同じ詳細が開く(plan/027。PR #19 からの持ち越し) */
+function DueList({ items }: { items: Item[] }) {
+  const [open, setOpen] = useState<string | null>(null)
+  if (items.length === 0) return null
+  return (
+    <div>
+      <p className="m-0 mb-1 text-[13px] text-ink-3">〆</p>
+      <ul className="m-0 flex list-none flex-col p-0">
+        {items.map((item) => (
+          <li key={item.id}>
+            <div className="flex items-start gap-3 text-base leading-relaxed text-ink">
+              <ListMark />
+              <button type="button" aria-expanded={open === item.id} onClick={() => setOpen(open === item.id ? null : item.id)} className="min-h-11 flex-1 py-2 text-left">
+                {item.body}
+              </button>
+            </div>
+            {open === item.id && <ItemDetail item={item} />}
           </li>
         ))}
       </ul>

@@ -41,33 +41,34 @@ export function monthGrid(year: number, month: number, today: string): MonthDay[
   return rows
 }
 
-/** 月のカレンダーの、1日分の中身(spec R48) */
-export type DayContent = {
+/** 月のカレンダーの、1日分の中身(spec R48)。締め切りは項目そのものを持つ(押すと詳細が開く。plan/027) */
+export type DueEntry = { body: string; dueDate: string | null }
+export type DayContent<D extends DueEntry = DueEntry> = {
   events: { title: string; time: string | null }[]
-  due: string[]
+  due: D[]
   placed: { body: string; done: boolean }[]
   done: string[]
 }
 
-const empty = (): DayContent => ({ events: [], due: [], placed: [], done: [] })
+const empty = <D extends DueEntry>(): DayContent<D> => ({ events: [], due: [], placed: [], done: [] })
 
 /**
  * 予定、締め切り、置いた予定、終えたことを、日付ごとにまとめる。
  * 予定の day は格子の初日(start)から何日目か。置いた予定で終えたものは、終えたことに重ねて数えない
  */
-export function collectByDate(
+export function collectByDate<D extends DueEntry>(
   start: string,
   input: {
     events: readonly { day: number; title: string; time: string | null }[]
-    due: readonly { body: string; dueDate: string | null }[]
+    due: readonly D[]
     placed: readonly { date: string; body: string; itemId: string; result: string | null }[]
     done: readonly { date: string; body: string; itemId: string }[]
   },
-): Map<string, DayContent> {
-  const map = new Map<string, DayContent>()
-  const at = (date: string) => map.get(date) ?? map.set(date, empty()).get(date)!
+): Map<string, DayContent<D>> {
+  const map = new Map<string, DayContent<D>>()
+  const at = (date: string) => map.get(date) ?? map.set(date, empty<D>()).get(date)!
   for (const e of input.events) at(addDays(start, e.day)).events.push({ title: e.title, time: e.time })
-  for (const d of input.due) if (d.dueDate) at(d.dueDate).due.push(d.body)
+  for (const d of input.due) if (d.dueDate) at(d.dueDate).due.push(d)
   // 置いた日と終えた日がずれても重ならないよう、項目の id で突き合わせる(PR #19 のレビューの Nit)
   const placedDone = new Set(input.placed.filter((p) => p.result === 'done').map((p) => p.itemId))
   for (const p of input.placed) at(p.date).placed.push({ body: p.body, done: p.result === 'done' })
